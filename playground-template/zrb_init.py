@@ -1,3 +1,3 @@
-import zrb_extras import hello
+from zrb_extras import hello
 
 print(hello())
