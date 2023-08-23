@@ -17,7 +17,10 @@ prepare_zrb_extras = CmdTask(
     description='Prepare venv for zrb extras',
     group=project_group,
     cwd=RESOURCE_DIR,
-    cmd_path=os.path.join(CURRENT_DIR, 'cmd', 'prepare-venv.sh'),
+    cmd_path=[
+        os.path.join(CURRENT_DIR, 'cmd', 'activate-venv.sh'),
+        os.path.join(CURRENT_DIR, 'cmd', 'prepare-venv.sh'),
+    ]
 )
 runner.register(prepare_zrb_extras)
 
@@ -27,7 +30,10 @@ build_zrb_extras = CmdTask(
     group=project_group,
     upstreams=[prepare_zrb_extras],
     cwd=RESOURCE_DIR,
-    cmd_path=os.path.join(CURRENT_DIR, 'cmd', 'build.sh'),
+    cmd_path=[
+        os.path.join(CURRENT_DIR, 'cmd', 'activate-venv.sh'),
+        os.path.join(CURRENT_DIR, 'cmd', 'build.sh'),
+    ]
 )
 runner.register(build_zrb_extras)
 
@@ -45,7 +51,10 @@ publish_zrb_extras = CmdTask(
     ],
     upstreams=[build_zrb_extras],
     cwd=RESOURCE_DIR,
-    cmd_path=os.path.join(CURRENT_DIR, 'cmd', 'publish.sh'),
+    cmd_path=[
+        os.path.join(CURRENT_DIR, 'cmd', 'activate-venv.sh'),
+        os.path.join(CURRENT_DIR, 'cmd', 'publish.sh'),
+    ]
 )
 runner.register(publish_zrb_extras)
 
@@ -55,6 +64,9 @@ install_zrb_extras_symlink = CmdTask(
     group=project_group,
     upstreams=[build_zrb_extras],
     cwd=RESOURCE_DIR,
-    cmd_path=os.path.join(CURRENT_DIR, 'cmd', 'install-symlink.sh'),
+    cmd_path=[
+        os.path.join(CURRENT_DIR, 'cmd', 'activate-venv.sh'),
+        os.path.join(CURRENT_DIR, 'cmd', 'install-symlink.sh'),
+    ]
 )
 runner.register(install_zrb_extras_symlink)
