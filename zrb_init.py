@@ -14,13 +14,9 @@ playground = CmdTask(
     upstreams=[
         zrb_extras_local.install_zrb_extras_symlink
     ],
+    retry=0,
     cwd=CURRENT_DIR,
-    cmd=[
-        'sudo rm -Rf playground',
-        'cp -R playground-template playground',
-        'cd playground',
-        'source project.sh',
-    ]
+    cmd_path=os.path.join(CURRENT_DIR, 'cmd', 'playground.sh')
 )
 runner.register(playground)
 

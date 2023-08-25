@@ -1,3 +1,4 @@
-from zrb_extras import hello
+import zrb_extras
+assert zrb_extras
 
-print(hello())
+

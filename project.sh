@@ -62,5 +62,9 @@ cd-project() {
     cd "${PROJECT_DIR}"
 }
 
+source-pkg() {
+    source ${PROJECT_DIR}/src/zrb-extras/.venv/bin/activate
+}
+
 reload
 echo '🤖 Happy Coding :)'
