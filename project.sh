@@ -54,5 +54,13 @@ reload() {
     fi
 }
 
+cd-pkg-src() {
+    cd "${PROJECT_DIR}/src/zrb-extras/src/zrb_extras"
+}
+
+cd-project() {
+    cd "${PROJECT_DIR}"
+}
+
 reload
 echo '🤖 Happy Coding :)'
