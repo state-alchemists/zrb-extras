@@ -1,12 +1,33 @@
-# Zrb extras
+# Zrb-Extras
+
+Additional tasks and utilities for Zrb.
+
+# Installing zrb-extras
 
 zrb-extras is a [pypi](https://pypi.org) package.
 
 You can install zrb-extras by invoking:
 
-```
+```bash
 pip install zrb-extras
 ```
+
+# Using zrb-extras
+
+You can use `zrb-extras` by importing the package in your `zrb_init.py`
+
+```python
+from zrb_extras import hello
+
+print(hello())
+```
+
+# Prerequisites
+
+- Python
+- Pip
+- Zrb >= 0.0.90
+
 
 # For maintainers
 
