@@ -1,26 +1,26 @@
-set -e
+#set -e
 
-echo "Prepare playground"
+echo "🍔 Prepare playground"
 sudo rm -Rf playground
 cp -R playground-template playground
 cd playground
 
-echo "Activate Venv"
+echo "🍔 Activate venv"
 source ../src/zrb-extras/.venv/bin/activate
 
 export ZRB_SHOW_PROMPT=0
+export PYTHONPATH=$(pwd)
 
-echo "Add airflow"
+echo "🍔 Add airflow"
 zrb project add airflow \
     --project-dir . \
     --app-name airflow
 
-echo $PYTHONPATH
-
-echo "Add metabase"
+echo "🍔 Add metabase"
 zrb project add metabase \
     --project-dir . \
     --app-name metabase
 
-echo "cd \"$(pwd)\""
-echo "source-pkg"
+echo "🍔 Playground is ready"
+echo "   cd \"$(pwd)\""
+echo "   source-pkg"
