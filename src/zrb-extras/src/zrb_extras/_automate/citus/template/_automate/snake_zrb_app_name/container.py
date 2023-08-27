@@ -141,7 +141,6 @@ start_snake_zrb_app_name_container = DockerComposeTask(
             name='check-kebab-zrb-app-name',
             host='{{input.snake_zrb_app_name_host}}',
             port='{{env.HOST_PORT}}',
-            url='/health',
             is_https='{{input.snake_zrb_app_name_https}}'
         )
     ]

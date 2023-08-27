@@ -1,12 +1,3 @@
-FROM golang:1.21 as build
-WORKDIR /app
-COPY . .
-RUN go build -o web-server main.go
-
-
 FROM apache/airflow:2.7.0
-ENV APP_MESSAGE "Hello, world!"
-ENV APP_PORT 8080
-WORKDIR /app
-COPY --from=build /app /app
-CMD ./web-server
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt

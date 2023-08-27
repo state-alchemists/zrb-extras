@@ -57,7 +57,7 @@ copy_resource = ResourceMaker(
     upstreams=[validate],
     replacements={
         'zrbAppName': '{{input.app_name}}',
-        'zrbAppHttpPort': '{{util.coalesce(input.http_port, "8080")}}',
+        'zrbAppHttpPort': '{{util.coalesce(input.http_port, "3000")}}',
         'ZRB_ENV_PREFIX': '{{util.coalesce(input.env_prefix, "MY").upper()}}',
         'zrb-app-image-name': '{{input.app_image_name}}'
     },
@@ -159,7 +159,7 @@ add_destroy_upstream = create_add_destroy_upstream(
 
 
 @python_task(
-    name='airflow',
+    name='citus',
     group=project_add_group,
     upstreams=[
         register_local_module,
@@ -177,6 +177,6 @@ add_destroy_upstream = create_add_destroy_upstream(
     ],
     runner=runner
 )
-async def airflow(*args: Any, **kwargs: Any):
+async def citus(*args: Any, **kwargs: Any):
     task: Task = kwargs.get('_task')
     task.print_out('Success')
