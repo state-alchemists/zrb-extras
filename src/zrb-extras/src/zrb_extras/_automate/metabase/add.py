@@ -27,11 +27,11 @@ KEBAB_APP_NAME_TPL = '{{util.to_kebab_case(app_name)}}'
 # Task Input
 ###############################################################################
 
-http_port_input = IntInput(
-    name='http-port',
+app_port_input = IntInput(
+    name='app-port',
     shortcut='p',
-    description='HTTP port',
-    prompt='HTTP port',
+    description='Metabase port',
+    prompt='Metabase port',
     default=8080,
 )
 
@@ -63,13 +63,13 @@ copy_resource = ResourceMaker(
         project_dir_input,
         app_name_input,
         app_image_name_input,
-        http_port_input,
+        app_port_input,
         env_prefix_input,
     ],
     upstreams=[validate],
     replacements={
         'zrbAppName': '{{input.app_name}}',
-        'zrbAppHttpPort': '{{util.coalesce(input.http_port, "3000")}}',
+        'zrbAppPort': '{{util.coalesce(input.app_port, "3000")}}',
         'ZRB_ENV_PREFIX': '{{util.coalesce(input.env_prefix, "MY").upper()}}',
         'zrb-app-image-name': '{{input.app_image_name}}'
     },

@@ -26,7 +26,7 @@ compose_env_file = EnvFile(
 host_port_env = Env(
     name='HOST_PORT',
     os_name='CONTAINER_ZRB_ENV_PREFIX_HOST_PORT',
-    default='zrbAppHttpPort'
+    default='zrbAppPort'
 )
 
 ###############################################################################
