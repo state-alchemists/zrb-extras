@@ -10,11 +10,11 @@ x-airflow-common: &airflow-common
   build: src
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@kebab-zrb-app-name-postgres/airflow
     # For backward compatibility, with Airflow <2.3
-    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
-    AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@kebab-zrb-app-name-postgres/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@kebab-zrb-app-name-postgres/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://:@kebab-zrb-app-name-redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
@@ -28,15 +28,15 @@ x-airflow-common: &airflow-common
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
-    - ./src/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
-    - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
-    - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+  - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
+  - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
+  - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
+  - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-common-depends-on
-    redis:
+    kebab-zrb-app-name-redis:
       condition: service_healthy
-    postgres:
+    kebab-zrb-app-name-postgres:
       condition: service_healthy
 
 networks:
@@ -45,27 +45,31 @@ networks:
 
 services:
 
-  postgres:
+  kebab-zrb-app-name-postgres:
     image: postgres:13
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-postgres
     logging: *default-logging
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
+    - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
       retries: 5
       start_period: 5s
     restart: always
+    networks:
+    - zrb
 
-  redis:
+  kebab-zrb-app-name-redis:
     image: redis:latest
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-redis
     logging: *default-logging
     expose:
-      - 6379
+    - 6379
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -73,13 +77,16 @@ services:
       retries: 50
       start_period: 30s
     restart: always
+    networks:
+    - zrb
 
-  airflow-webserver:
+  kebab-zrb-app-name-airflow-webserver:
     <<: *airflow-common
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-airflow-webserver
     logging: *default-logging
     command: webserver
     ports:
-      - "${HOST_PORT:-8080}:8080"
+    - "${HOST_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
@@ -89,11 +96,14 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      kebab-zrb-app-name-airflow-init:
         condition: service_completed_successfully
+    networks:
+    - zrb
 
-  airflow-scheduler:
+  kebab-zrb-app-name-airflow-scheduler:
     <<: *airflow-common
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-airflow-scheduler
     logging: *default-logging
     command: scheduler
     healthcheck:
@@ -105,18 +115,21 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      kebab-zrb-app-name-airflow-init:
         condition: service_completed_successfully
+    networks:
+    - zrb
 
-  airflow-worker:
+  kebab-zrb-app-name-airflow-worker:
     <<: *airflow-common
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-airflow-worker
     logging: *default-logging
     command: celery worker
     healthcheck:
       # yamllint disable rule:line-length
       test:
-        - "CMD-SHELL"
-        - 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
+      - "CMD-SHELL"
+      - 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
       interval: 30s
       timeout: 10s
       retries: 5
@@ -129,12 +142,15 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      kebab-zrb-app-name-airflow-init:
         condition: service_completed_successfully
+    networks:
+    - zrb
 
-  airflow-triggerer:
+  kebab-zrb-app-name-airflow-triggerer:
     <<: *airflow-common
     logging: *default-logging
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-airflow-triggerer
     command: triggerer
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
@@ -145,17 +161,20 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      kebab-zrb-app-name-airflow-init:
         condition: service_completed_successfully
+    networks:
+    - zrb
 
-  airflow-init:
+  kebab-zrb-app-name-airflow-init:
     <<: *airflow-common
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-airflow-init
     logging: *default-logging
     entrypoint: /bin/bash
     # yamllint disable rule:line-length
     command:
-      - -c
-      - |
+    - -c
+    - |
         function ver() {
           printf "%04d%04d%04d%04d" $${1//./ }
         }
@@ -225,33 +244,39 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "0:0"
     volumes:
-      - ${AIRFLOW_PROJ_DIR:-.}:/sources
+    - ${AIRFLOW_PROJ_DIR:-.}:/sources
+    networks:
+    - zrb
 
-  airflow-cli:
+  kebab-zrb-app-name-airflow-cli:
     <<: *airflow-common
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-airflow-cli
     logging: *default-logging
     profiles:
-      - debug
+    - debug
     environment:
       <<: *airflow-common-env
       CONNECTION_CHECK_MAX_COUNT: "0"
     # Workaround for entrypoint issue. See: https://github.com/apache/airflow/issues/16252
     command:
-      - bash
-      - -c
-      - airflow
+    - bash
+    - -c
+    - airflow
+    networks:
+    - zrb
 
   # You can enable flower by adding "--profile flower" option e.g. docker-compose --profile flower up
   # or by explicitly targeted on the command line e.g. docker-compose up flower.
   # See: https://docs.docker.com/compose/profiles/
-  flower:
+  kebab-zrb-app-name-flower:
     <<: *airflow-common
+    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name-flower
     logging: *default-logging
     command: celery flower
     profiles:
-      - flower
+    - flower
     ports:
-      - "5555:5555"
+    - "5555:5555"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
       interval: 30s
@@ -261,8 +286,10 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
+      kebab-zrb-app-name-airflow-init:
         condition: service_completed_successfully
+    networks:
+    - zrb
 
 volumes:
   postgres-db-volume:

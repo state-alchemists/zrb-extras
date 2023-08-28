@@ -6,24 +6,52 @@ x-logging: &default-logging
     max-file: "5"
   driver: json-file
 
+x-auth-env: &AUTH
+  POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+  PGUSER: "${POSTGRES_USER:-postgres}"
+  PGPASSWORD: "${POSTGRES_PASSWORD}"
+  POSTGRES_HOST_AUTH_METHOD: "${POSTGRES_HOST_AUTH_METHOD:-trust}"
+
 networks:
   zrb:
     name: zrb
 
 services:
-  snake_zrb_app_name:
-    build: src
-    image: ${IMAGE:-kebab-zrb-app-name}
+
+  kebab-zrb-app-name-master:
+    image: "citusdata/citus:12.0.0"
+    container_name: "${CONTAINER_PREFIX:-my}-${COMPOSE_PROJECT_NAME:-citus}_master"
     logging: *default-logging
-    container_name: ${CONTAINER_PREFIX:-my}-kebab-zrb-app-name
-    hostname: kebab-zrb-app-name
-    ports:
-    - "${HOST_PORT:-8080}:${APP_PORT:-8080}"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:${APP_PORT:-8080}/ || exit 1"]
-      interval: 5s
-      timeout: 1s
-      retries: 30
+    ports: ["${HOST_PORT:-5432}:5432"]
+    labels: ["com.citusdata.role=Master"]
+    environment: *AUTH
     networks:
-      - zrb
+    - zrb
+
+  kebab-zrb-app-name-manager:
+    image: "citusdata/membership-manager:0.3.0"
+    container_name: "${CONTAINER_PREFIX:-my}-${COMPOSE_PROJECT_NAME:-citus}_manager"
+    logging: *default-logging
+    volumes:
+    - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock"
+    - healthcheck-volume:/healthcheck
+    depends_on: [kebab-zrb-app-name-master]
+    environment: *AUTH
+    networks:
+    - zrb
+
+  kebab-zrb-app-name-worker:
+    image: "citusdata/citus:12.0.0"
+    logging: *default-logging
+    labels: ["com.citusdata.role=Worker"]
+    depends_on: [kebab-zrb-app-name-manager]
+    environment: *AUTH
+    command: "/wait-for-manager.sh"
+    volumes:
+    - healthcheck-volume:/healthcheck
+    networks:
+    - zrb
+
+volumes:
+  healthcheck-volume:

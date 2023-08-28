@@ -14,22 +14,26 @@ export PYTHONPATH=$(pwd)
 echo "🎃 Add airflow"
 zrb project add airflow \
     --project-dir . \
-    --app-name airflow
+    --app-name airflow \
+    --http-port 8080
 
 echo "🎃 Add metabase"
 zrb project add metabase \
     --project-dir . \
-    --app-name metabase
+    --app-name metabase \
+    --http-port 8080
 
 echo "🎃 Add citus"
 zrb project add citus \
     --project-dir . \
-    --app-name citus
+    --app-name citus \
+    --http-port 5432
 
 echo "🎃 Add airbyte"
 zrb project add airbyte \
     --project-dir . \
-    --app-name airbyte
+    --app-name airbyte \
+    --http-port 8080
 
 echo "🎃 Playground is ready"
 echo "    cd \"$(pwd)\""

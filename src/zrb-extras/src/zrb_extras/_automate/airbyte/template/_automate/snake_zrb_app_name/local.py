@@ -12,6 +12,6 @@ start_snake_zrb_app_name = CmdTask(
     description='Start human readable zrb app name',
     group=project_group,
     upstreams=[start_snake_zrb_app_name_container],
-    cmd='Starting kebab-zrb-app-name as containers'
+    cmd='echo "Starting kebab-zrb-app-name as containers"'
 )
 runner.register(start_snake_zrb_app_name)
