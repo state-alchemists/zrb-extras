@@ -1,4 +1,4 @@
-#set -e
+set -e
 
 echo "🎃 Prepare playground"
 sudo rm -Rf playground
@@ -15,25 +15,25 @@ echo "🎃 Add airflow"
 zrb project add airflow \
     --project-dir . \
     --app-name airflow \
-    --http-port 8080
+    --app-port 8080
 
 echo "🎃 Add metabase"
 zrb project add metabase \
     --project-dir . \
     --app-name metabase \
-    --http-port 8080
+    --app-port 8080
 
 echo "🎃 Add citus"
 zrb project add citus \
     --project-dir . \
     --app-name citus \
-    --http-port 5432
+    --app-port 5432
 
 echo "🎃 Add airbyte"
 zrb project add airbyte \
     --project-dir . \
     --app-name airbyte \
-    --http-port 8080
+    --app-port 8080
 
 echo "🎃 Playground is ready"
 echo "    cd \"$(pwd)\""

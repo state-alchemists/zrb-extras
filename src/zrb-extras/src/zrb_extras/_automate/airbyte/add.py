@@ -69,7 +69,7 @@ copy_resource = ResourceMaker(
     upstreams=[validate],
     replacements={
         'zrbAppName': '{{input.app_name}}',
-        'zrbAppHttpPort': '{{util.coalesce(input.http_port, "3000")}}',
+        'zrbAppPort': '{{util.coalesce(input.app_port, "3000")}}',
         'ZRB_ENV_PREFIX': '{{util.coalesce(input.env_prefix, "MY").upper()}}',
         'zrb-app-image-name': '{{input.app_image_name}}'
     },

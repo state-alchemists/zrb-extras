@@ -1,5 +1,5 @@
 from zrb import (
-    DockerComposeTask, Env, EnvFile, HTTPChecker, ServiceConfig, runner
+    DockerComposeTask, Env, EnvFile, PortChecker, ServiceConfig, runner
 )
 from zrb.builtin.group import project_group
 from ._common import (
@@ -137,11 +137,10 @@ start_snake_zrb_app_name_container = DockerComposeTask(
         host_port_env,
     ],
     checkers=[
-        HTTPChecker(
+        PortChecker(
             name='check-kebab-zrb-app-name',
             host='{{input.snake_zrb_app_name_host}}',
             port='{{env.HOST_PORT}}',
-            is_https='{{input.snake_zrb_app_name_https}}'
         )
     ]
 )

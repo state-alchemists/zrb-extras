@@ -37,7 +37,9 @@ services:
     - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock"
     - healthcheck-volume:/healthcheck
     depends_on: [kebab-zrb-app-name-master]
-    environment: *AUTH
+    environment: 
+      <<: *AUTH
+      CITUS_HOST: kebab-zrb-app-name-master
     networks:
     - zrb
 
