@@ -7,7 +7,10 @@ x-logging: &default-logging
   driver: json-file
 
 x-airflow-common: &airflow-common
-  build: src
+  build:
+    dockerfile: Dockerfile
+    context: ./src
+  image: ${IMAGE:-kebab-zrb-app-name}
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@kebab-zrb-app-name-postgres/airflow

@@ -20,7 +20,10 @@ networks:
 services:
 
   kebab-zrb-app-name-master:
-    image: "citusdata/citus:12.0.0"
+    build:
+      dockerfile: Dockerfile
+      context: ./src
+    image: ${IMAGE:-kebab-zrb-app-name}
     container_name: "${CONTAINER_PREFIX:-my}-${COMPOSE_PROJECT_NAME:-citus}_master"
     logging: *default-logging
     ports: ["${HOST_PORT:-5432}:5432"]
@@ -44,7 +47,10 @@ services:
     - zrb
 
   kebab-zrb-app-name-worker:
-    image: "citusdata/citus:12.0.0"
+    build:
+      dockerfile: Dockerfile
+      context: ./src
+    image: ${IMAGE:-kebab-zrb-app-name}
     logging: *default-logging
     labels: ["com.citusdata.role=Worker"]
     depends_on: [kebab-zrb-app-name-manager]
