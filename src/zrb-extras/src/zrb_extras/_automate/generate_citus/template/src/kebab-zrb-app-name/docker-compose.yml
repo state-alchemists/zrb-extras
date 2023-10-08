@@ -1,0 +1,66 @@
+version: '3'
+
+x-logging: &default-logging
+  options:
+    max-size: "100m"
+    max-file: "5"
+  driver: json-file
+
+x-auth-env: &AUTH
+  POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+  PGUSER: "${POSTGRES_USER:-postgres}"
+  PGPASSWORD: "${POSTGRES_PASSWORD}"
+  POSTGRES_HOST_AUTH_METHOD: "${POSTGRES_HOST_AUTH_METHOD:-trust}"
+
+networks:
+  zrb:
+    name: zrb
+    external: true
+
+services:
+
+  kebab-zrb-app-name-master:
+    build:
+      dockerfile: Dockerfile
+      context: ./src
+    image: ${IMAGE:-kebab-zrb-app-name}
+    container_name: "${CONTAINER_PREFIX:-my}-${COMPOSE_PROJECT_NAME:-citus}_master"
+    logging: *default-logging
+    ports: ["${HOST_PORT:-5432}:5432"]
+    labels: ["com.citusdata.role=Master"]
+    environment: *AUTH
+    networks:
+    - zrb
+
+  kebab-zrb-app-name-manager:
+    image: "citusdata/membership-manager:0.3.0"
+    container_name: "${CONTAINER_PREFIX:-my}-${COMPOSE_PROJECT_NAME:-citus}_manager"
+    logging: *default-logging
+    volumes:
+    - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock"
+    - healthcheck-volume:/healthcheck
+    depends_on: [kebab-zrb-app-name-master]
+    environment: 
+      <<: *AUTH
+      CITUS_HOST: kebab-zrb-app-name-master
+    networks:
+    - zrb
+
+  kebab-zrb-app-name-worker:
+    build:
+      dockerfile: Dockerfile
+      context: ./src
+    image: ${IMAGE:-kebab-zrb-app-name}
+    logging: *default-logging
+    labels: ["com.citusdata.role=Worker"]
+    depends_on: [kebab-zrb-app-name-manager]
+    environment: *AUTH
+    command: "/wait-for-manager.sh"
+    volumes:
+    - healthcheck-volume:/healthcheck
+    networks:
+    - zrb
+
+volumes:
+  healthcheck-volume:

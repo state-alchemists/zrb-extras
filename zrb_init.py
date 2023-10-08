@@ -19,4 +19,3 @@ playground = CmdTask(
     cmd_path=os.path.join(CURRENT_DIR, 'cmd', 'playground.sh')
 )
 runner.register(playground)
-

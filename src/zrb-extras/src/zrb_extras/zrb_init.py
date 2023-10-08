@@ -1,9 +1,8 @@
-import _automate.airflow.add as airflow_add
-import _automate.metabase.add as metabase_add
-import _automate.citus.add as citus_add
-import _automate.airbyte.add as airbyte_add
-
-assert airflow_add
-assert metabase_add
-assert citus_add
-assert airbyte_add
+import _automate.generate_airbyte.add as generate_airbyte
+import _automate.generate_airflow.add as generate_airflow
+import _automate.generate_citus.add as generate_citus
+import _automate.generate_metabase.add as generate_metabase
+assert generate_airbyte
+assert generate_airflow
+assert generate_citus
+assert generate_metabase
