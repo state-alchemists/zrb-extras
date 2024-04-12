@@ -1,8 +1,0 @@
-import _automate.generate_airbyte.add as generate_airbyte
-import _automate.generate_airflow.add as generate_airflow
-import _automate.generate_citus.add as generate_citus
-import _automate.generate_metabase.add as generate_metabase
-assert generate_airbyte
-assert generate_airflow
-assert generate_citus
-assert generate_metabase
