@@ -3,7 +3,7 @@ from zrb import DockerComposeTask, runner
 from ..._project import stop_project_containers
 from .._constant import RESOURCE_DIR
 from ..image._env import image_env
-from ._env import compose_env_file, host_port_env
+from ._env import airflow_webserver_port_env, compose_env_file
 from ._group import snake_zrb_app_name_container_group
 from ._service_config import snake_zrb_app_name_service_config
 
@@ -19,7 +19,7 @@ stop_snake_zrb_app_name_container = DockerComposeTask(
     env_files=[compose_env_file],
     envs=[
         image_env,
-        host_port_env,
+        airflow_webserver_port_env,
     ],
 )
 

@@ -12,12 +12,10 @@ from .image import (
     push_snake_zrb_app_name_image,
     snake_zrb_app_name_image_group,
 )
-from .start import start_snake_zrb_app_name
 
 assert snake_zrb_app_name_group
 assert snake_zrb_app_name_image_group
 assert snake_zrb_app_name_container_group
-assert start_snake_zrb_app_name
 assert deploy_snake_zrb_app_name
 assert destroy_snake_zrb_app_name
 assert remove_snake_zrb_app_name_container

@@ -5,7 +5,7 @@ from .._input import host_input, local_input
 from ..image import build_snake_zrb_app_name_image
 from ..image._env import image_env
 from ..image._input import image_input
-from ._env import compose_env_file, host_port_env
+from ._env import airflow_webserver_port_env, compose_env_file
 from ._group import snake_zrb_app_name_container_group
 from ._service_config import snake_zrb_app_name_service_config
 from .remove import remove_snake_zrb_app_name_container
@@ -29,6 +29,6 @@ init_snake_zrb_app_name_container = DockerComposeTask(
     env_files=[compose_env_file],
     envs=[
         image_env,
-        host_port_env,
+        airflow_webserver_port_env,
     ],
 )

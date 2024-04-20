@@ -6,7 +6,7 @@ from zrb.builtin.project._helper import (
     validate_inexisting_automation,
 )
 from zrb.builtin.project._input import project_dir_input
-from zrb.builtin.project.add.app._group import project_add_app_group
+from zrb.builtin.project.add._group import project_add_group
 from zrb.helper.accessories.color import colored
 from zrb.helper.typing import Any
 from zrb.helper.util import to_kebab_case
@@ -83,7 +83,7 @@ register_module = create_register_module(
 
 @python_task(
     name="airflow",
-    group=project_add_app_group,
+    group=project_add_group,
     description="Add airflow",
     inputs=[
         project_dir_input,

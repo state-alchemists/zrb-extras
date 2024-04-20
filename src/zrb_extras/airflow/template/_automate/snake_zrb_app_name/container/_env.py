@@ -9,8 +9,8 @@ compose_env_file = EnvFile(
     prefix="CONTAINER_ZRB_ENV_PREFIX",
 )
 
-host_port_env = Env(
-    name="HOST_PORT",
-    os_name="CONTAINER_ZRB_ENV_PREFIX_HOST_PORT",
+airflow_webserver_port_env = Env(
+    name="AIRFLOW_WEBSERVER_PORT",
+    os_name="CONTAINER_ZRB_ENV_PREFIX_AIRFLOW_WEBSERVER_PORT",
     default="zrbAppHttpPort",
 )
