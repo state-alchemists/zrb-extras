@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zrb-extras"
-version = "0.0.4"
+version = "0.0.7"
 description = "Collection of Zrb additional utilities"
 authors = ["Go Frendi Gunawan <gofrendiasgard@gmail.com>"]
 license = "AGPL-3.0-or-later"
@@ -11,13 +11,17 @@ documentation = "https://github.com/goFrendiAsgard/zrb-extras"
 keywords = []
 
 [tool.poetry.dependencies]
-python = ">=3.10.0,<4.0.0"
-zrb = ">=0.27.0"
+python = ">=3.11.0,<4.0.0"
+zrb = ">=1.15.17"
+sounddevice = "^0.5.2"
+simpleaudio = "^1.0.4"
+google-genai = "^1.32.0"
+soundfile = "^0.13.1"
+numpy = "^2.3.2"
+scipy = "^1.16.1"
 
 [tool.poetry.dev-dependencies]
 flake8 = "~7.0.0"
-black = "~24.3.0"
-isort = "~5.13.2"
 pytest = "~7.4.0"
 pytest-cov = "~4.1.0"
 pytest-asyncio = "~0.21.0"
