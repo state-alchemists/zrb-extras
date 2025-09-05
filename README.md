@@ -37,28 +37,16 @@ You can also create a `TestPypi` account:
 - Log in or register to [https://test.pypi.org/](https://test.pypi.org/)
 - Create an API token
 
-Once you have your API token, you need to create a `~/.pypirc` file:
+Once you have your API token, you need to configure poetry:
 
 ```
-[distutils]
-index-servers =
-   pypi
-   testpypi
-
-[pypi]
-  repository = https://upload.pypi.org/legacy/
-  username = __token__
-  password = pypi-xxx-xxx
-[testpypi]
-  repository = https://test.pypi.org/legacy/
-  username = __token__
-  password = pypi-xxx-xxx
+poetry config pypi-token.pypi <your-api-token>
 ```
 
 To publish zrb-extras, you can do the following command:
 
 ```bash
-zrb project publish-zrb-extras
+poetry publish --build
 ```
 
 ## Updating version
