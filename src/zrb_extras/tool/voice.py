@@ -120,7 +120,6 @@ def synthesize_and_play(text: str):
             )
         )
     )
-
     # Extract audio blob
     try:
         part = resp.candidates[0].content.parts[0].inline_data
@@ -128,15 +127,11 @@ def synthesize_and_play(text: str):
         mime = getattr(part, "mime_type", None)
     except Exception as e:
         raise RuntimeError(f"No audio found in response: {e}")
-
     if isinstance(b64, str) and b64.startswith("data:"):
         comma = b64.find(",")
         if comma != -1:
             b64 = b64[comma + 1:]
-
     raw = base64.b64decode(b64) if isinstance(b64, str) else bytes(b64)
-
-
     # Prepare an in-memory WAV buffer
     buf = io.BytesIO()
     if mime and "wav" in mime.lower():
@@ -152,49 +147,26 @@ def synthesize_and_play(text: str):
             wf.setframerate(SAMPLE_RATE_OUT)
             wf.writeframes(raw)
         buf.seek(0)
-
     # Now decode and play directly from buffer
     data, sr = sf.read(buf)
     sd.play(data, sr)
     sd.wait()
 
 
-
-def main_loop(silence_threshold: float = SILENCE_THRESHOLD, max_silence: float = MAX_SILENCE):
-    print("STT <-> TTS loop. Say 'quit' to stop.")
+def listen(
+    silence_threshold: int = SILENCE_THRESHOLD, max_silence: float = MAX_SILENCE
+) -> str:
     tmpdir = Path(tempfile.mkdtemp(prefix="gemini_stt_tts_"))
     in_wav = tmpdir / "input.wav"
-
-    while True:
-        audio_data = record_until_silence(silence_threshold, max_silence)
-        # normalize audio
-        audio_data = audio_data / np.max(np.abs(audio_data))
-        sf.write(str(in_wav), audio_data, SAMPLE_RATE, subtype="PCM_16")
-        print("Saved:", str(in_wav))
-        text = ""
-        try:
-            text = transcribe_file(str(in_wav))
-        except Exception as e:
-            print(f"Transcription failed: {e}")
-        if not text:
-            print("No transcription, try again.")
-            continue
-        if any(tok in text.lower() for tok in ("quit", "exit", "stop")):
-            print("Exiting.")
-            synthesize_and_play("Goodbye!")
-            break
-        # simple echo; replace with any dialogue logic you want
-        response = f"You said: {text}"
-        synthesize_and_play(response)
+    # normalize audio
+    audio_data = record_until_silence(silence_threshold, max_silence)
+    audio_data = audio_data / np.max(np.abs(audio_data))
+    sf.write(str(in_wav), audio_data, SAMPLE_RATE, subtype="PCM_16")
+    return transcribe_file(in_wav)
+    
 
 
-if __name__ == "__main__":
-    try:
-        if len(sys.argv) > 1:
-            SILENCE_THRESHOLD = float(sys.argv[1])
-        if len(sys.argv) > 2:
-            MAX_SILENCE = float(sys.argv[2])
-        main_loop(SILENCE_THRESHOLD, MAX_SILENCE)
-    except KeyboardInterrupt:
-        print("\nInterrupted. Bye.")
+def speak(text: str) -> bool:
+    synthesize_and_play(text)
+
 
