@@ -15,6 +15,7 @@ import time
 import tempfile
 import wave
 import sys
+from collections import deque
 
 from pathlib import Path
 import numpy as np
@@ -156,6 +157,9 @@ def synthesize_and_play(text: str):
 def listen(
     silence_threshold: int = SILENCE_THRESHOLD, max_silence: float = MAX_SILENCE
 ) -> str:
+    # Warm up the sound device to prevent ALSA timeout
+    with sd.Stream(samplerate=SAMPLE_RATE, channels=CHANNELS):
+        pass
     tmpdir = Path(tempfile.mkdtemp(prefix="gemini_stt_tts_"))
     in_wav = tmpdir / "input.wav"
     # normalize audio
