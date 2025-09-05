@@ -11,12 +11,10 @@ import base64
 import io
 import os
 import queue
-import re
 import time
 import tempfile
 import wave
 import sys
-from concurrent.futures import ThreadPoolExecutor
 
 from pathlib import Path
 import numpy as np
@@ -33,9 +31,10 @@ SILENCE_THRESHOLD = 0.01   # adjust if needed (smaller = more sensitive)
 MAX_SILENCE = 4.0          # seconds of silence before stopping
 
 # model choices (per docs)
-STT_MODEL = "gemini-1.5-flash"                 # audio understanding / transcription
-TTS_MODEL = "models/text-to-speech"     # TTS-capable Gemini 1.5 variant
-VOICE_NAME = "Echo"                          # example prebuilt voice (see docs)
+STT_MODEL = "gemini-2.5-flash"                 # audio understanding / transcription
+TTS_MODEL = "gemini-2.5-flash-preview-tts"     # TTS-capable Gemini 2.5 variant
+# VOICE_NAME = "Zephyr"                          # example prebuilt voice (see docs)
+VOICE_NAME = "Sulafat"
 # ------------------------
 
 # init client from env key (GEMINI_API_KEY or GOOGLE_API_KEY)
@@ -43,7 +42,7 @@ api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 if not api_key:
     print("Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable.", file=sys.stderr)
     sys.exit(2)
-genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key)
 
 
 def record_until_silence(silence_threshold: float = SILENCE_THRESHOLD, max_silence: float = MAX_SILENCE):
@@ -92,12 +91,12 @@ def record_until_silence(silence_threshold: float = SILENCE_THRESHOLD, max_silen
 def transcribe_file(wav_path: str) -> str:
     # Upload file to Gemini Files API
     print("Uploading for transcription...")
-    model = genai.GenerativeModel(model_name=STT_MODEL)
-    uploaded_file = genai.upload_file(path=wav_path)
+    uploaded = client.files.upload(file=wav_path)
     # Ask model to transcribe (upload + instruction style)
     print("Requesting transcription...")
-    resp = model.generate_content(
-        [uploaded_file, "Please transcribe the uploaded audio exactly."]
+    resp = client.models.generate_content(
+        model=STT_MODEL,
+        contents=[uploaded, "Please transcribe the uploaded audio exactly."]
     )
     # response.text is the canonical convenience property for text outputs
     text = (resp.text or "").strip()
@@ -105,91 +104,53 @@ def transcribe_file(wav_path: str) -> str:
     return text
 
 
-def _synthesize_chunk(text: str):
-    if not text:
-        return None
-    print(f"Requesting TTS for: '{text}'")
-    try:
-        resp = genai.text_to_speech(
-            model=TTS_MODEL,
-            text=text,
-            voice_name=VOICE_NAME,
-        )
-        return resp.audio_data
-    except Exception as e:
-        print(f"TTS failed for '{text}': {e}", file=sys.stderr)
-        return None
-
-
-def split_into_sentences(text: str) -> list[str]:
-    text = text.strip()
-    if not text:
-        return []
-    # Super simple sentence splitter
-    sentences = re.split(r'(?<=[.?!])\s+', text)
-    return [s.strip() for s in sentences if s.strip()]
-
 def synthesize_and_play(text: str):
     if not text:
         text = "I have nothing to say."
-
-    sentences = split_into_sentences(text)
-    if not sentences:
-        if text:
-            sentences = [text]
-        else:
-            return
-
-    audio_queue = queue.Queue()
-    stop_playback = False
-
-    def producer(executor: ThreadPoolExecutor):
-        # Submit all sentences for synthesis
-        futures = [executor.submit(_synthesize_chunk, s) for s in sentences]
-        for future in futures:
-            audio_chunk = future.result()
-            if audio_chunk:
-                audio_queue.put(audio_chunk)
-        audio_queue.put(None)  # Sentinel to stop consumer
-
-    def consumer():
-        nonlocal stop_playback
-        while not stop_playback:
-            try:
-                audio_chunk = audio_queue.get(timeout=0.1)
-                if audio_chunk is None:
-                    break
-                buf = io.BytesIO(audio_chunk)
-                data, sr = sf.read(buf)
-                sd.play(data, sr)
-                sd.wait()
-            except queue.Empty:
-                continue
-            except Exception as e:
-                print(f"Error during playback: {e}", file=sys.stderr)
-                break
-
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        prod_thread = executor.submit(producer, executor)
-        cons_thread = executor.submit(consumer)
-
-        try:
-            # Wait for producer to finish
-            prod_thread.result()
-            # Wait for consumer to finish
-            cons_thread.result()
-        except KeyboardInterrupt:
-            print("\nInterrupted by user.", file=sys.stderr)
-            stop_playback = True
-            # Drain the queue
-            while not audio_queue.empty():
-                try:
-                    audio_queue.get_nowait()
-                except queue.Empty:
-                    break
-            # Wait for threads to finish up
-            prod_thread.result()
-            cons_thread.result()
+    print("Requesting TTS...")
+    resp = client.models.generate_content(
+        model=TTS_MODEL,
+        contents=text,
+        config=types.GenerateContentConfig(
+            response_modalities=["AUDIO"],
+            speech_config=types.SpeechConfig(
+                voice_config=types.VoiceConfig(
+                    prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=VOICE_NAME)
+                )
+            )
+        )
+    )
+    # Extract audio blob
+    try:
+        part = resp.candidates[0].content.parts[0].inline_data
+        b64 = part.data
+        mime = getattr(part, "mime_type", None)
+    except Exception as e:
+        raise RuntimeError(f"No audio found in response: {e}")
+    if isinstance(b64, str) and b64.startswith("data:"):
+        comma = b64.find(",")
+        if comma != -1:
+            b64 = b64[comma + 1:]
+    raw = base64.b64decode(b64) if isinstance(b64, str) else bytes(b64)
+    # Prepare an in-memory WAV buffer
+    buf = io.BytesIO()
+    if mime and "wav" in mime.lower():
+        # Already WAV or RIFF container
+        buf.write(raw)
+        buf.seek(0)
+    else:
+        # Assume raw PCM16 mono at 24kHz and wrap it
+        SAMPLE_RATE_OUT = 24000
+        with wave.open(buf, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)  # 16-bit
+            wf.setframerate(SAMPLE_RATE_OUT)
+            wf.writeframes(raw)
+        buf.seek(0)
+    # Now decode and play directly from buffer
+    data, sr = sf.read(buf)
+    sd.play(data, sr)
+    sd.wait()
 
 
 def listen(
@@ -199,13 +160,12 @@ def listen(
     in_wav = tmpdir / "input.wav"
     # normalize audio
     audio_data = record_until_silence(silence_threshold, max_silence)
-    if np.max(np.abs(audio_data)) > 0:
-        audio_data = audio_data / np.max(np.abs(audio_data))
+    audio_data = audio_data / np.max(np.abs(audio_data))
     sf.write(str(in_wav), audio_data, SAMPLE_RATE, subtype="PCM_16")
-    return transcribe_file(str(in_wav))
+    return transcribe_file(in_wav)
+    
 
 
-def speak(text: str):
+def speak(text: str) -> bool:
     synthesize_and_play(text)
-
 
