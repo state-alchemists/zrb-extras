@@ -43,6 +43,7 @@ export PULSE_SERVER=tcp:127.0.0.1
 
 ```python
 from zrb.builtin import llm_ask
+from zrb import llm_config
 from zrb_extras.llm.tool import create_listen_tool, create_speak_tool
 
 API_KEY = os.getenv("GOOGLE_API_KEY", "")
@@ -65,6 +66,10 @@ llm_ask.add_tool(
         max_silence=4.0,  # Optional (4 second silence before stop listening)
     )
 )
+
+# Optional: allow LLM to speak or listen without asking for user approval
+if not llm_config.default_yolo_mode:
+    llm_config.set_default_yolo_mode(["speak", "listen"])
 ```
 
 
