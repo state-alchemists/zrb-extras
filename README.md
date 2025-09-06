@@ -8,18 +8,63 @@ You can install zrb-extras by invoking the following command:
 pip install zrb-extras
 ```
 
-Once zrb-extras is installed, you can then run it by invoking the following command:
+## Let your `LLMTask` `speak` and `listen`
+
+### Prerequisites
+
+Ubuntu
 
 ```bash
-zrb-extras
+sudo apt install libasound2-dev portaudio19-dev pulseaudio
 ```
 
-You can also import `zrb-extras` into your Python program:
+Termux
+
+> First of all, make sure termux has permission to access microphone/speaker
+
+```bash
+pkg update && pkg upgrade -y
+pkg install pulseaudio termux-api -y
+# start PulseAudio daemon
+pulseaudio --start --exit-idle-time=-1
+# allow local TCP connections from guest
+pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
+pactl load-module module-sles-source latency_msec=60
+```
+
+Proot-distro (Ubuntu)
+
+```bash
+sudo apt install libasound2-dev portaudio19-dev pulseaudio
+export PULSE_SERVER=tcp:127.0.0.1
+```
+
+### Create `zrb_init.py`
 
 ```python
-from zrb_extras import hello
+from zrb.builtin import llm_ask
+from zrb_extras.llm.tool import create_listen_tool, create_speak_tool
 
-print(hello())
+API_KEY = os.getenv("GOOGLE_API_KEY", "")
+
+llm_ask.add_tool(
+    create_speak_tool(
+        api_key=API_KEY,  # Optional, by default taken from GEMINI_API_KEY or GOOOGLE_API_KEY
+        stt_model="gemini-2.5-flash-preview-tts",  # Optional
+        voice_name="Sulafat",  # Optional (https://ai.google.dev/gemini-api/docs/speech-generation#voices)
+        sample_rate_out=24000,  # Optional
+    )
+)
+llm_ask.add_tool(
+    create_listen_tool(
+        api_key=API_KEY,  # Optional, by default taken from GEMINI_API_KEY or GOOOGLE_API_KEY
+        tts_model="gemini-2.5-flash",  # Optional
+        sample_rate=16000,  # Optional
+        channels=1,  # Optional
+        silence_threshold=0.01,  # Optional (smaller means more sensitive)
+        max_silence=4.0,  # Optional (4 second silence before stop listening)
+    )
+)
 ```
 
 
