@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import queue
+import sys
 import tempfile
 import time
 import wave
@@ -77,7 +78,7 @@ def _synthesize_and_play(
 ):
     if not text:
         text = "I have nothing to say."
-    print("Requesting TTS...")
+    print("Requesting TTS...", file=sys.stderr)
     resp = client.models.generate_content(
         model=tts_model,
         contents=text,
@@ -93,6 +94,7 @@ def _synthesize_and_play(
         ),
     )
     # Extract audio blob
+    print("Extracting audio...", file=sys.stderr)
     try:
         part = resp.candidates[0].content.parts[0].inline_data
         b64 = part.data
@@ -105,6 +107,7 @@ def _synthesize_and_play(
             b64 = b64[comma + 1 :]
     raw = base64.b64decode(b64) if isinstance(b64, str) else bytes(b64)
     # Prepare an in-memory WAV buffer
+    print("Preparing audio buffer...", file=sys.stderr)
     buf = io.BytesIO()
     if mime and "wav" in mime.lower():
         # Already WAV or RIFF container
@@ -120,6 +123,7 @@ def _synthesize_and_play(
         buf.seek(0)
     # Now decode and play directly from buffer
     data, sr = sf.read(buf)
+    print("Playing audio...", file=sys.stderr)
     sd.play(data, sr)
     sd.wait()
     return True
@@ -192,7 +196,7 @@ def _record_until_silence(
     def callback(indata, frames, time_info, status):
         q.put(indata.copy())
 
-    print("Waiting for speech...")
+    print("Waiting for speech...", file=sys.stderr)
     with sd.InputStream(samplerate=sample_rate, channels=channels, callback=callback):
         # First detect speech
         while True:
@@ -200,7 +204,7 @@ def _record_until_silence(
             pre_buffer.append(block)
             volume_norm = np.linalg.norm(block) / len(block)
             if volume_norm > silence_threshold:
-                print("Speech detected, recording...")
+                print("Speech detected, recording...", file=sys.stderr)
                 rec_data.extend(pre_buffer)
                 rec_data.append(block)
                 break
@@ -211,13 +215,12 @@ def _record_until_silence(
             block = q.get()
             rec_data.append(block)
             volume_norm = np.linalg.norm(block) / len(block)
-            print(f"Volume: {volume_norm:.4f}", end="\r")
-
+            print("Volume: {volume_norm:.4f}", end="\r", file=sys.stderr)
             if volume_norm < silence_threshold:
                 if silence_start is None:
                     silence_start = time.time()
                 elif time.time() - silence_start > max_silence:
-                    print("\nSilence detected, stop recording.")
+                    print("\nSilence detected, stop recording.", file=sys.stderr)
                     break
             else:
                 silence_start = None
@@ -235,17 +238,17 @@ def _transcribe_file(
     stt_model: str,
 ) -> str:
     # Upload file to Gemini Files API
-    print("Uploading for transcription...")
+    print("Uploading for transcription...", file=sys.stderr)
     uploaded = client.files.upload(file=wav_path)
     # Ask model to transcribe (upload + instruction style)
-    print("Requesting transcription...")
+    print("Requesting transcription...", file=sys.stderr)
     resp = client.models.generate_content(
         model=stt_model,
         contents=[uploaded, "Please transcribe the uploaded audio exactly."],
     )
     # response.text is the canonical convenience property for text outputs
     text = (resp.text or "").strip()
-    print("Transcription result:", repr(text))
+    print("Transcription result:", repr(text), file=sys.stderr)
     return text
 
 
