@@ -215,7 +215,7 @@ def _record_until_silence(
             block = q.get()
             rec_data.append(block)
             volume_norm = np.linalg.norm(block) / len(block)
-            print("Volume: {volume_norm:.4f}", end="\r", file=sys.stderr)
+            print(f"Volume: {volume_norm:.4f}", end="\r", file=sys.stderr)
             if volume_norm < silence_threshold:
                 if silence_start is None:
                     silence_start = time.time()
