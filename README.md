@@ -29,7 +29,7 @@ pkg install pulseaudio termux-api -y
 pulseaudio --start --exit-idle-time=-1
 # allow local TCP connections from guest
 pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
-pactl load-module module-sles-source latency_msec=60
+pactl load-module module-sles-source source_name=termux_mic latency_msec=60
 ```
 
 Proot-distro (Ubuntu)
@@ -37,6 +37,7 @@ Proot-distro (Ubuntu)
 ```bash
 sudo apt install libasound2-dev portaudio19-dev pulseaudio
 export PULSE_SERVER=tcp:127.0.0.1
+export PULSE_SOURCE=termux_mic
 ```
 
 ### Create `zrb_init.py`

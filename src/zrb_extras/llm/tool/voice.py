@@ -155,7 +155,7 @@ def create_listen_tool(
             The transcribed text from the user's speech.
         """
         # Warm up the sound device to prevent ALSA timeout
-        with sd.Stream(samplerate=sample_rate, channels=channels):
+        with sd.InputStream(samplerate=sample_rate, channels=channels):
             pass
 
         tmpdir = Path(tempfile.mkdtemp(prefix="gemini_stt_tts_"))
