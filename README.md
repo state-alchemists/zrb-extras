@@ -33,6 +33,7 @@ pactl load-module module-sles-source
 pactl list short sources
 
 # Start proot-distro
+proot-distro login ubuntu
 ```
 
 #### Proot-distro (Ubuntu)
