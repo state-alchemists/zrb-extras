@@ -12,31 +12,33 @@ pip install zrb-extras
 
 ### Prerequisites
 
-Ubuntu
-
-```bash
-sudo apt install libasound2-dev portaudio19-dev pulseaudio
-```
-
-Termux
+#### Termux
 
 > First of all, make sure termux has permission to access microphone/speaker
 
 ```bash
 pkg update && pkg upgrade -y
 pkg install pulseaudio termux-api -y
-# start PulseAudio daemon
-pulseaudio --start --exit-idle-time=-1
-# allow local TCP connections from guest
-pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1
-pactl load-module module-sles-source latency_msec=60
 ```
 
-Proot-distro (Ubuntu)
+Run the following script or add it to `~/.bashrc`
 
 ```bash
-sudo apt install libasound2-dev portaudio19-dev pulseaudio
-export PULSE_SERVER=tcp:127.0.0.1
+# start PulseAudio daemon
+pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1
+
+# load module now (if it errors, check you gave Termux:API mic permission and restart Termux)
+pactl load-module module-sles-source
+# confirm source exists
+pactl list short sources
+
+# Start proot-distro
+```
+
+#### Proot-distro (Ubuntu)
+
+```bash
+apt install libasound2-dev portaudio19-dev pulseaudio
 ```
 
 ### Create `zrb_init.py`
