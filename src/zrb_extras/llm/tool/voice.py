@@ -6,6 +6,7 @@ import sys
 import tempfile
 import time
 import wave
+import asyncio
 from collections import deque
 from pathlib import Path
 from typing import Callable
@@ -15,6 +16,7 @@ import sounddevice as sd
 import soundfile as sf
 from google import genai
 from google.genai import types
+from zrb import AnyContext
 
 SAMPLE_RATE = 16000
 CHANNELS = 1
@@ -35,9 +37,10 @@ def create_speak_tool(
     voice_name: str = VOICE_NAME,
     sample_rate_out: int = 24000,
 ) -> Callable[[str], bool]:
-    def speak(text: str) -> bool:
+    async def speak(text: str) -> bool:
         """
         Converts a given text or SSML document into speech and plays it out loud.
+        Once the sound played, this will return `True`
 
         Use this tool to communicate with the user verbally.
         Keep the text concise (a sentence or two) to ensure a fast response.
@@ -58,7 +61,7 @@ def create_speak_tool(
         Returns:
             True if the speech was successfully generated and played, False otherwise.
         """
-        return _synthesize_and_play(
+        return await _synthesize_and_play(
             client=_get_client(client, api_key),
             text=text,
             tts_model=tts_model,
@@ -69,7 +72,7 @@ def create_speak_tool(
     return speak
 
 
-def _synthesize_and_play(
+async def _synthesize_and_play(
     client: genai.Client,
     text: str,
     tts_model: str,
@@ -125,7 +128,7 @@ def _synthesize_and_play(
     data, sr = sf.read(buf)
     print("Playing audio...", file=sys.stderr)
     sd.play(data, sr)
-    sd.wait()
+    await asyncio.to_thread(sd.wait)
     return True
 
 
@@ -137,12 +140,13 @@ def create_listen_tool(
     channels: int = CHANNELS,
     silence_threshold: float = SILENCE_THRESHOLD,
     max_silence: float = MAX_SILENCE,
+    as_chat_trigger: bool = False,
 ) -> Callable[[], str]:
     """
     Factory to create a configurable listen tool.
     """
 
-    def listen() -> str:
+    async def listen() -> str:
         """
         Records audio from the microphone, waits for silence,
         and then transcribes the speech to text.
@@ -157,11 +161,10 @@ def create_listen_tool(
         # Warm up the sound device to prevent ALSA timeout
         with sd.Stream(samplerate=sample_rate, channels=channels):
             pass
-
         tmpdir = Path(tempfile.mkdtemp(prefix="gemini_stt_tts_"))
         in_wav = tmpdir / "input.wav"
         # Record audio
-        audio_data = _record_until_silence(
+        audio_data = await _record_until_silence(
             sample_rate=sample_rate,
             channels=channels,
             silence_threshold=silence_threshold,
@@ -176,31 +179,37 @@ def create_listen_tool(
             wav_path=str(in_wav),
             stt_model=stt_model,
         )
+    
+    if not as_chat_trigger:
+        return listen
 
-    return listen
+    async def listen_trigger(ctx: AnyContext) -> str:
+        return await listen()
+
+    return listen_trigger
 
 
-def _record_until_silence(
+async def _record_until_silence(
     sample_rate: int,
     channels: int,
     silence_threshold: float,
     max_silence: float,
 ):
     """Wait for speech to start, record, then stop after silence."""
-    q = queue.Queue()
+    q = asyncio.Queue()
     rec_data = []
     PRE_BUFFER_DURATION = 0.5  # seconds
     pre_buffer_size = int(PRE_BUFFER_DURATION * sample_rate / 1024)  # in blocks
     pre_buffer = deque(maxlen=pre_buffer_size)
 
     def callback(indata, frames, time_info, status):
-        q.put(indata.copy())
+        q.put_nowait(indata.copy())
 
     print("Waiting for speech...", file=sys.stderr)
     with sd.InputStream(samplerate=sample_rate, channels=channels, callback=callback):
         # First detect speech
         while True:
-            block = q.get()
+            block = await q.get()
             pre_buffer.append(block)
             volume_norm = np.linalg.norm(block) / len(block)
             if volume_norm > silence_threshold:
@@ -212,7 +221,7 @@ def _record_until_silence(
         # Record until silence for max_silence seconds
         silence_start = None
         while True:
-            block = q.get()
+            block = await q.get()
             rec_data.append(block)
             volume_norm = np.linalg.norm(block) / len(block)
             print(f"Volume: {volume_norm:.4f}", end="\r", file=sys.stderr)
