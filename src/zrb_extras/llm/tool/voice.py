@@ -39,27 +39,39 @@ def create_speak_tool(
 ) -> Callable[[str], bool]:
     async def speak(text: str) -> bool:
         """
-        Converts a given text or SSML document into speech and plays it out loud.
-        Once the sound played, this will return `True`
+        Converts a given text into speech and plays it out loud.
+        Once the sound has finished playing, this will return `True`.
 
         Use this tool to communicate with the user verbally.
         Keep the text concise (a sentence or two) to ensure a fast response.
 
-        You can control the speech's intonation, rate, and emphasis by providing
-        the text as an SSML (Speech Synthesis Markup Language) document.
-        To do this, wrap the text in <speak> tags.
+        You can control the speech's style, intonation, rate, and emphasis in
+        two ways:
 
+        1. Controllable Prompts (Recommended):
+        Simply describe how you want the text to be spoken. This is the easiest
+        and most intuitive method for most use cases.
+        Example:
+        'Say in a cheerful, enthusiastic voice: "Good morning, everyone!"'
+
+        2. SSML (Speech Synthesis Markup Language):
+        For more granular and technical control, you can use SSML. To do this,
+        wrap the text in `<speak>` tags. This is useful for specifying exact
+        pauses, phonetic pronunciations, or how numbers are read.
         SSML Example:
-        '<speak>
-          I can speak <emphasis>very</emphasis> slowly
-          <prosody rate="slow">or very quickly.</prosody>
-        </speak>'
+        ```
+        <speak>
+          I can speak <emphasis>very</emphasis> slowly.
+          <break time="500ms" />
+          Or I can say a number like <say-as interpret-as="cardinal">123</say-as>.
+        </speak>
+        ```
 
         Args:
-            text: The plain text or SSML string to be converted to speech.
+            text: The plain text, a controllable prompt, or an SSML string.
 
         Returns:
-            True if the speech was successfully generated and played, False otherwise.
+            True if speech was successfully generated and played, False otherwise.
         """
         return await _synthesize_and_play(
             client=_get_client(client, api_key),
@@ -141,6 +153,7 @@ def create_listen_tool(
     silence_threshold: float = SILENCE_THRESHOLD,
     max_silence: float = MAX_SILENCE,
     as_chat_trigger: bool = False,
+    text_processor: None | Callable[[str], str] = None
 ) -> Callable[[], str]:
     """
     Factory to create a configurable listen tool.
@@ -174,11 +187,14 @@ def create_listen_tool(
         audio_data = audio_data / np.max(np.abs(audio_data))
         sf.write(str(in_wav), audio_data, sample_rate, subtype="PCM_16")
         # Transcribe
-        return _transcribe_file(
+        transcribed_text = _transcribe_file(
             client=_get_client(client, api_key),
             wav_path=str(in_wav),
             stt_model=stt_model,
         )
+        if text_processor is None:
+            return transcribed_text
+        return text_processor(transcribed_text)
     
     if not as_chat_trigger:
         return listen
