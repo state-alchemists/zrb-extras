@@ -37,7 +37,7 @@ def create_speak_tool(
     voice_name: str = VOICE_NAME,
     sample_rate_out: int = 24000,
 ) -> Callable[[str], bool]:
-    async def speak(text: str) -> bool:
+    async def speak(text: str, voice_name=voice_name) -> bool:
         """
         Converts a given text into speech and plays it out loud.
         Once the sound has finished playing, this will return `True`.
@@ -68,8 +68,40 @@ def create_speak_tool(
         ```
 
         Args:
-            text: The plain text, a controllable prompt, or an SSML string.
-
+            text (str): The plain text, a controllable prompt, or an SSML string.
+            voice_name (str): The voice to use for the speech.
+                All voices have a conversational and engaging tone.
+                Available voices are:
+                - Zephyr (Female, Bright)
+                - Puck (Male, Upbeat)
+                - Charon (Male, Informative)
+                - Kore (Female, Firm)
+                - Fenrir (Male, Excitable)
+                - Leda (Female, Youthful)
+                - Orus (Male, Firm)
+                - Aoede (Female, Breezy)
+                - Callirrhoe (Female, Easy-going)
+                - Autonoe (Female, Bright)
+                - Enceladus (Male, Breathy)
+                - Iapetus (Male, Clear)
+                - Umbriel (Male, Easy-going)
+                - Algieba (Male, Smooth)
+                - Despina (Female, Smooth)
+                - Erinome (Female, Clear)
+                - Algenib (Male, Gravelly)
+                - Rasalgethi (Male, Informative)
+                - Laomedeia (Female, Upbeat)
+                - Achernar (Female, Soft)
+                - Alnilam (Male, Firm)
+                - Schedar (Male, Even)
+                - Gacrux (Female, Mature)
+                - Pulcherrima (Female, Forward)
+                - Achird (Male, Friendly)
+                - Zubenelgenubi (Male, Casual)
+                - Vindemiatrix (Female, Gentle)
+                - Sadachbia (Male, Lively)
+                - Sadaltager (Male, Knowledgeable)
+                - Sulafat (Female, Warm)
         Returns:
             True if speech was successfully generated and played, False otherwise.
         """
