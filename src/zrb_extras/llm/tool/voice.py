@@ -48,7 +48,7 @@ def create_speak_tool(
         You can control the speech's style, intonation, rate, and emphasis in
         two ways:
 
-        1. Controllable Prompts (Recommended):
+        1. Controllable Prompts (Highly Recommended):
         Simply describe how you want the text to be spoken. This is the easiest
         and most intuitive method for most use cases.
         Example:
