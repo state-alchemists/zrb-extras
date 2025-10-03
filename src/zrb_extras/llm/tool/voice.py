@@ -26,7 +26,6 @@ MAX_SILENCE = 4.0  # seconds of silence before stopping
 # model choices (per docs)
 STT_MODEL = "gemini-2.5-flash"  # audio understanding / transcription
 TTS_MODEL = "gemini-2.5-flash-preview-tts"  # TTS-capable Gemini 2.5 variant
-# VOICE_NAME = "Zephyr"                          # example prebuilt voice (see docs)
 VOICE_NAME = "Sulafat"
 
 
@@ -36,6 +35,7 @@ def create_speak_tool(
     tts_model: str = TTS_MODEL,
     voice_name: str = VOICE_NAME,
     sample_rate_out: int = 24000,
+    safety_settings: list[types.SafetySetting] | None = None,
 ) -> Callable[[str], bool]:
     async def speak(text: str, voice_name=voice_name) -> bool:
         """
@@ -111,6 +111,7 @@ def create_speak_tool(
             tts_model=tts_model,
             voice_name=voice_name,
             sample_rate_out=sample_rate_out,
+            safety_settings=safety_settings,
         )
 
     return speak
@@ -122,6 +123,7 @@ async def _synthesize_and_play(
     tts_model: str,
     voice_name: str,
     sample_rate_out: int,
+    safety_settings: list[types.SafetySetting] | None = None,
 ):
     if not text:
         text = "I have nothing to say."
@@ -131,6 +133,7 @@ async def _synthesize_and_play(
         contents=text,
         config=types.GenerateContentConfig(
             response_modalities=["AUDIO"],
+            safety_settings=safety_settings,
             speech_config=types.SpeechConfig(
                 voice_config=types.VoiceConfig(
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(
@@ -185,7 +188,8 @@ def create_listen_tool(
     silence_threshold: float = SILENCE_THRESHOLD,
     max_silence: float = MAX_SILENCE,
     as_chat_trigger: bool = False,
-    text_processor: None | Callable[[str], str] = None
+    text_processor: None | Callable[[str], str] = None,
+    safety_settings: list[types.SafetySetting] | None = None,
 ) -> Callable[[], str]:
     """
     Factory to create a configurable listen tool.
@@ -223,11 +227,12 @@ def create_listen_tool(
             client=_get_client(client, api_key),
             wav_path=str(in_wav),
             stt_model=stt_model,
+            safety_settings=safety_settings,
         )
         if text_processor is None:
             return transcribed_text
         return text_processor(transcribed_text)
-    
+
     if not as_chat_trigger:
         return listen
 
@@ -293,6 +298,7 @@ def _transcribe_file(
     client: genai.Client,
     wav_path: str,
     stt_model: str,
+    safety_settings: list[types.SafetySetting] | None = None,
 ) -> str:
     # Upload file to Gemini Files API
     print("Uploading for transcription...", file=sys.stderr)
@@ -302,6 +308,9 @@ def _transcribe_file(
     resp = client.models.generate_content(
         model=stt_model,
         contents=[uploaded, "Please transcribe the uploaded audio exactly."],
+        config=types.GenerateContentConfig(
+            safety_settings=safety_settings
+        ),
     )
     # response.text is the canonical convenience property for text outputs
     text = (resp.text or "").strip()
