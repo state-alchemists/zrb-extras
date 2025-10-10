@@ -88,7 +88,7 @@ def create_speak_tool(
                 Example for multi-speaker:
                 ```python
                 speak(
-                    text="Read aloud conversation between two person:\nSpeaker 1: hi, Speaker 2: How are you?",
+                    text="Read aloud conversation between two person in casual setting:\nSpeaker 1: hi, Speaker 2: How are you?",
                     voice_name=[
                         {"speaker": "Speaker 1", "voice": "Aoede"},
                         {"speaker" : "Speaker 2", "voice": "Puck"}
