@@ -60,7 +60,7 @@ def create_speak_tool(
 
         Args:
             text (str): The plain text, a controllable prompt, or an SSML string.
-            voice_name (str | list[dict[str, str]] | None): The voice(s) to use for the speech.
+            voice_name (str | list[MultiSpeakerVoice] | None): The voice(s) to use for the speech.
                 If a string, it specifies a single voice.
                 Example for single speaker:
                 ```python
