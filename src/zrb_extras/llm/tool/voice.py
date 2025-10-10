@@ -10,6 +10,7 @@ import asyncio
 from collections import deque
 from pathlib import Path
 from typing import Callable
+from typing_extensions import TypedDict
 
 import numpy as np
 import sounddevice as sd
@@ -29,11 +30,16 @@ TTS_MODEL = "gemini-2.5-flash-preview-tts"  # TTS-capable Gemini 2.5 variant
 VOICE_NAME = "Sulafat"
 
 
+class MultiSpeakerVoice(TypedDict):
+    speaker: str
+    voice: str
+
+
 def create_speak_tool(
     client: genai.Client | None = None,
     api_key: str | None = None,
     tts_model: str = TTS_MODEL,
-    voice_name: str | dict[str, str] | None = VOICE_NAME,
+    voice_name: str | list[MultiSpeakerVoice] | None = VOICE_NAME,
     sample_rate_out: int = 24000,
     safety_settings: list[types.SafetySetting] | None = None,
 ) -> Callable[[str], bool]:
@@ -73,14 +79,20 @@ def create_speak_tool(
                 If a string, it specifies a single voice.
                 Example for single speaker:
                 ```python
-                speak(text="Hello, I am a single speaker.", voice_name="Sulafat")
+                speak(
+                    text="Say in cheerful voice: Hello, I am a single speaker.",
+                    voice_name="Sulafat"
+                )
                 ```
                 If a dictionary, it specifies multiple speakers with their respective voices.
                 Example for multi-speaker:
                 ```python
                 speak(
-                    text="Speaker 1 says: Hello. Speaker 2 says: How are you?",
-                    voice_name={"speaker_1": "Puck", "speaker_2": "Fenrir"}
+                    text="Read aloud conversation between two person:\nSpeaker 1: hi, Speaker 2: How are you?",
+                    voice_name=[
+                        {"speaker": "Speaker 1", "voice": "Aoede"},
+                        {"speaker" : "Speaker 2", "voice": "Puck"}
+                    ]
                 )
                 ```
                 All voices have a conversational and engaging tone.
@@ -134,7 +146,7 @@ async def _synthesize_and_play(
     client: genai.Client,
     text: str,
     tts_model: str,
-    voice_name: str | dict[str, str] | None = None,
+    voice_name: str | list[MultiSpeakerVoice] | None = None,
     sample_rate_out: int = 24000,
     safety_settings: list[types.SafetySetting] | None = None,
 ):
@@ -152,18 +164,18 @@ async def _synthesize_and_play(
                     multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
                         speaker_voice_configs=[
                             types.SpeakerVoiceConfig(
-                                speaker=speaker,
+                                speaker=config.get("speaker", f"Speaker {idx + 1}"),
                                 voice_config=types.VoiceConfig(
                                     prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                        voice_name=voice_name_str
+                                        voice_name=config.get("voice", VOICE_NAME)
                                     )
                                 ),
                             )
-                            for speaker, voice_name_str in voice_name.items()
+                            for idx, config in enumerate(voice_name)
                         ]
                     )
                 )
-                if isinstance(voice_name, dict)
+                if isinstance(voice_name, list)
                 else types.SpeechConfig(
                     voice_config=types.VoiceConfig(
                         prebuilt_voice_config=types.PrebuiltVoiceConfig(
