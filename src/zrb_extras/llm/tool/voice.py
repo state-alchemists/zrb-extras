@@ -33,11 +33,11 @@ def create_speak_tool(
     client: genai.Client | None = None,
     api_key: str | None = None,
     tts_model: str = TTS_MODEL,
-    voice_name: str = VOICE_NAME,
+    voice_name: str | dict[str, str] | None = VOICE_NAME,
     sample_rate_out: int = 24000,
     safety_settings: list[types.SafetySetting] | None = None,
 ) -> Callable[[str], bool]:
-    async def speak(text: str, voice_name=voice_name) -> bool:
+    async def speak(text: str, voice_name: str | dict[str, str] | None = voice_name) -> bool:
         """
         Converts a given text into speech and plays it out loud.
         Once the sound has finished playing, this will return `True`.
@@ -69,7 +69,20 @@ def create_speak_tool(
 
         Args:
             text (str): The plain text, a controllable prompt, or an SSML string.
-            voice_name (str): The voice to use for the speech.
+            voice_name (str | dict[str, str] | None): The voice(s) to use for the speech.
+                If a string, it specifies a single voice.
+                Example for single speaker:
+                ```python
+                speak(text="Hello, I am a single speaker.", voice_name="Sulafat")
+                ```
+                If a dictionary, it specifies multiple speakers with their respective voices.
+                Example for multi-speaker:
+                ```python
+                speak(
+                    text="Speaker 1 says: Hello. Speaker 2 says: How are you?",
+                    voice_name={"speaker_1": "Puck", "speaker_2": "Fenrir"}
+                )
+                ```
                 All voices have a conversational and engaging tone.
                 Available voices are:
                 - Zephyr (Female, Bright)
@@ -121,8 +134,8 @@ async def _synthesize_and_play(
     client: genai.Client,
     text: str,
     tts_model: str,
-    voice_name: str,
-    sample_rate_out: int,
+    voice_name: str | dict[str, str] | None = None,
+    sample_rate_out: int = 24000,
     safety_settings: list[types.SafetySetting] | None = None,
 ):
     if not text:
@@ -134,10 +147,28 @@ async def _synthesize_and_play(
         config=types.GenerateContentConfig(
             response_modalities=["AUDIO"],
             safety_settings=safety_settings,
-            speech_config=types.SpeechConfig(
-                voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                        voice_name=voice_name
+            speech_config=(
+                types.SpeechConfig(
+                    multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
+                        speaker_voice_configs=[
+                            types.SpeakerVoiceConfig(
+                                speaker=speaker,
+                                voice_config=types.VoiceConfig(
+                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                        voice_name=voice_name_str
+                                    )
+                                ),
+                            )
+                            for speaker, voice_name_str in voice_name.items()
+                        ]
+                    )
+                )
+                if isinstance(voice_name, dict)
+                else types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=voice_name or VOICE_NAME
+                        )
                     )
                 )
             ),
