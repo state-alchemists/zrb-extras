@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import os
@@ -6,17 +7,16 @@ import sys
 import tempfile
 import time
 import wave
-import asyncio
 from collections import deque
 from pathlib import Path
 from typing import Callable
-from typing_extensions import TypedDict
 
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
 from google import genai
 from google.genai import types
+from typing_extensions import TypedDict
 from zrb import AnyContext
 
 SAMPLE_RATE = 16000
@@ -43,7 +43,9 @@ def create_speak_tool(
     sample_rate_out: int = 24000,
     safety_settings: list[types.SafetySetting] | None = None,
 ) -> Callable[[str], bool]:
-    async def speak(text: str, voice_name: str | dict[str, str] | None = voice_name) -> bool:
+    async def speak(
+        text: str, voice_name: str | list[MultiSpeakerVoice] | None = voice_name
+    ) -> bool:
         """
         Converts a given text into speech and plays it out loud.
         Once the sound has finished playing, this will return `True`.
@@ -51,31 +53,14 @@ def create_speak_tool(
         Use this tool to communicate with the user verbally.
         Keep the text concise (a sentence or two) to ensure a fast response.
 
-        You can control the speech's style, intonation, rate, and emphasis in
-        two ways:
-
-        1. Controllable Prompts (Highly Recommended):
-        Simply describe how you want the text to be spoken. This is the easiest
-        and most intuitive method for most use cases.
+        You can control the speech's style, intonation, rate, and emphasis by
+        simply describe how you want the text to be spoken.
         Example:
         'Say in a cheerful, enthusiastic voice: "Good morning, everyone!"'
 
-        2. SSML (Speech Synthesis Markup Language):
-        For more granular and technical control, you can use SSML. To do this,
-        wrap the text in `<speak>` tags. This is useful for specifying exact
-        pauses, phonetic pronunciations, or how numbers are read.
-        SSML Example:
-        ```
-        <speak>
-          I can speak <emphasis>very</emphasis> slowly.
-          <break time="500ms" />
-          Or I can say a number like <say-as interpret-as="cardinal">123</say-as>.
-        </speak>
-        ```
-
         Args:
             text (str): The plain text, a controllable prompt, or an SSML string.
-            voice_name (str | dict[str, str] | None): The voice(s) to use for the speech.
+            voice_name (str | list[dict[str, str]] | None): The voice(s) to use for the speech.
                 If a string, it specifies a single voice.
                 Example for single speaker:
                 ```python
@@ -351,9 +336,7 @@ def _transcribe_file(
     resp = client.models.generate_content(
         model=stt_model,
         contents=[uploaded, "Please transcribe the uploaded audio exactly."],
-        config=types.GenerateContentConfig(
-            safety_settings=safety_settings
-        ),
+        config=types.GenerateContentConfig(safety_settings=safety_settings),
     )
     # response.text is the canonical convenience property for text outputs
     text = (resp.text or "").strip()
