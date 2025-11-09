@@ -42,9 +42,10 @@ def create_speak_tool(
     voice_name: str | list[MultiSpeakerVoice] | None = VOICE_NAME,
     sample_rate_out: int = 24000,
     safety_settings: list[types.SafetySetting] | None = None,
-) -> Callable[[str], bool]:
+) -> Callable[[str, str | list[MultiSpeakerVoice] | None], bool]:
     async def speak(
-        text: str, voice_name: str | list[MultiSpeakerVoice] | None = voice_name
+        text: str, 
+        voice_name: str | list[MultiSpeakerVoice] | None = voice_name,
     ) -> bool:
         """
         Converts a given text into speech and plays it out loud.
@@ -69,7 +70,7 @@ def create_speak_tool(
                     voice_name="Sulafat"
                 )
                 ```
-                If a dictionary, it specifies multiple speakers with their respective voices.
+                If a dictionary, it specifies multiple (maximum two)speakers with their respective voices.
                 Example for multi-speaker:
                 ```python
                 speak(
