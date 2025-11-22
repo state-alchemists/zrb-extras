@@ -2,7 +2,6 @@ import asyncio
 import base64
 import io
 import os
-import queue
 import sys
 import tempfile
 import time
@@ -42,47 +41,31 @@ def create_speak_tool(
     voice_name: str | list[MultiSpeakerVoice] | None = VOICE_NAME,
     sample_rate_out: int = 24000,
     safety_settings: list[types.SafetySetting] | None = None,
+    tool_name: str | None = None,
+    tool_description: str | None = None,
 ) -> Callable[[str, str | list[MultiSpeakerVoice] | None], bool]:
     async def speak(
-        text: str, 
+        ctx: AnyContext,
+        text: str,
         voice_name: str | list[MultiSpeakerVoice] | None = voice_name,
     ) -> bool:
-        """
-        Converts a given text into speech and plays it out loud.
-        Once the sound has finished playing, this will return `True`.
+        """Converts text to speech and plays it aloud.
 
-        Use this tool to communicate with the user verbally.
-        Keep the text concise (a sentence or two) to ensure a fast response.
+        Use this tool to verbally communicate with the user.
+        The system will play the generated audio and return `True` upon completion.
+        Keep the text concise (a sentence or two) for a faster response.
 
-        You can control the speech's style, intonation, rate, and emphasis by
-        simply describe how you want the text to be spoken.
-        Example:
-        'Say in a cheerful, enthusiastic voice: "Good morning, everyone!"'
+        You can control the speech's style by describing how you want the text to be spoken.
+        For example: 'Say in a cheerful, enthusiastic voice: "Good morning, everyone!"'
 
         Args:
-            text (str): The plain text, a controllable prompt, or an SSML string.
-            voice_name (str | list[MultiSpeakerVoice] | None): The voice(s) to use for the speech.
-                If a string, it specifies a single voice.
-                Example for single speaker:
-                ```python
-                speak(
-                    text="Say in cheerful voice: Hello, I am a single speaker.",
-                    voice_name="Sulafat"
-                )
-                ```
-                If a dictionary, it specifies multiple (maximum two)speakers with their respective voices.
-                Example for multi-speaker:
-                ```python
-                speak(
-                    text="Read aloud conversation between two person in casual setting:\nSpeaker 1: hi, Speaker 2: How are you?",
-                    voice_name=[
-                        {"speaker": "Speaker 1", "voice": "Aoede"},
-                        {"speaker" : "Speaker 2", "voice": "Puck"}
-                    ]
-                )
-                ```
-                All voices have a conversational and engaging tone.
-                Available voices are:
+            text: The text to be spoken. Can be plain text or a controllable prompt.
+            voice_name: The voice or voices to use.
+                - For a single speaker, provide a voice name string (e.g., "Sulafat").
+                - For multiple speakers (up to two), provide a list of speaker-voice mappings.
+                  Example: `[{"speaker": "User", "voice": "Aoede"}, {"speaker": "Agent", "voice": "Puck"}]`
+
+                Available voices:
                 - Zephyr (Female, Bright)
                 - Puck (Male, Upbeat)
                 - Charon (Male, Informative)
@@ -125,6 +108,10 @@ def create_speak_tool(
             safety_settings=safety_settings,
         )
 
+    if tool_name is not None:
+        speak.__name__ = tool_name
+    if tool_description is not None:
+        speak.__doc__ = tool_description
     return speak
 
 
@@ -216,22 +203,21 @@ def create_listen_tool(
     channels: int = CHANNELS,
     silence_threshold: float = SILENCE_THRESHOLD,
     max_silence: float = MAX_SILENCE,
-    as_chat_trigger: bool = False,
     text_processor: None | Callable[[str], str] = None,
     safety_settings: list[types.SafetySetting] | None = None,
-) -> Callable[[], str]:
+    tool_name: str | None = None,
+    tool_description: str | None = None,
+) -> Callable[[AnyContext], str]:
     """
     Factory to create a configurable listen tool.
     """
 
-    async def listen() -> str:
-        """
-        Records audio from the microphone, waits for silence,
-        and then transcribes the speech to text.
+    async def listen(ctx: AnyContext) -> str:
+        """Listens for and transcribes the user's verbal response.
 
-        This tool is used to capture the user's verbal response.
-        It automatically handles silence detection to determine when the
-        user has finished speaking.
+        Use this tool to capture speech from the user.
+        The tool records audio from the microphone, automatically detects when the user
+        has finished speaking, and returns the transcribed text.
 
         Returns:
             The transcribed text from the user's speech.
@@ -262,13 +248,11 @@ def create_listen_tool(
             return transcribed_text
         return text_processor(transcribed_text)
 
-    if not as_chat_trigger:
-        return listen
-
-    async def listen_trigger(ctx: AnyContext) -> str:
-        return await listen()
-
-    return listen_trigger
+    if tool_name is not None:
+        listen.__name__ = tool_name
+    if tool_description is not None:
+        listen.__doc__ = tool_description
+    return listen
 
 
 async def _record_until_silence(
