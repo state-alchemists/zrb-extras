@@ -7,6 +7,17 @@ from zrb_extras.llm.tool import create_listen_tool, create_speak_tool
 
 API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
+llm_chat_trigger.add_trigger(
+    create_listen_tool(
+        api_key=API_KEY,
+        stt_model="gemini-2.5-flash",
+        sample_rate=16000,
+        channels=1,
+        silence_threshold=0.01,
+        max_silence=4.0,
+    )
+)
+
 llm_ask.add_tool(
     create_speak_tool(
         api_key=API_KEY,
@@ -16,27 +27,6 @@ llm_ask.add_tool(
         tool_name="speaking",
     )
 )
-
-
-# listen = create_listen_tool(
-#     api_key=API_KEY,
-#     stt_model="gemini-2.5-flash",
-#     sample_rate=16000,
-#     channels=1,
-#     silence_threshold=0.01,
-#     max_silence=4.0,
-# )
-# llm_ask.add_tool(listen)
-
-listen = create_listen_tool(
-    api_key=API_KEY,
-    stt_model="gemini-2.5-flash",
-    sample_rate=16000,
-    channels=1,
-    silence_threshold=0.01,
-    max_silence=4.0,
-)
-llm_chat_trigger.add_trigger(listen)
 
 
 # Optional: allow LLM to speak or listen without asking for user approval
