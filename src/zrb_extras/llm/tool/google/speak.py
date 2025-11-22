@@ -47,45 +47,45 @@ def create_speak_tool(
         For example: 'Say in a cheerful, enthusiastic voice: "Good morning, everyone!"'
 
         Args:
-            text: The text to be spoken. Can be plain text or a controllable prompt.
-            voice_name: The voice or voices to use.
-                - For a single speaker, provide a voice name string (e.g., "Sulafat").
-                - For multiple speakers (up to two), provide a list of speaker-voice mappings.
-                  Example: `[{"speaker": "User", "voice": "Aoede"}, {"speaker": "Agent", "voice": "Puck"}]`
+          text: The text to be spoken. Can be plain text or a controllable prompt.
+          voice_name: The voice or voices to use.
+            - For a single speaker, provide a voice name string (e.g., "Sulafat").
+            - For multiple speakers (up to two), provide a list of speaker-voice mappings.
+              Example: `[{"speaker": "User", "voice": "Aoede"}, {"speaker": "Agent", "voice": "Puck"}]`
 
-                Available voices:
-                - Zephyr (Female, Bright)
-                - Puck (Male, Upbeat)
-                - Charon (Male, Informative)
-                - Kore (Female, Firm)
-                - Fenrir (Male, Excitable)
-                - Leda (Female, Youthful)
-                - Orus (Male, Firm)
-                - Aoede (Female, Breezy)
-                - Callirrhoe (Female, Easy-going)
-                - Autonoe (Female, Bright)
-                - Enceladus (Male, Breathy)
-                - Iapetus (Male, Clear)
-                - Umbriel (Male, Easy-going)
-                - Algieba (Male, Smooth)
-                - Despina (Female, Smooth)
-                - Erinome (Female, Clear)
-                - Algenib (Male, Gravelly)
-                - Rasalgethi (Male, Informative)
-                - Laomedeia (Female, Upbeat)
-                - Achernar (Female, Soft)
-                - Alnilam (Male, Firm)
-                - Schedar (Male, Even)
-                - Gacrux (Female, Mature)
-                - Pulcherrima (Female, Forward)
-                - Achird (Male, Friendly)
-                - Zubenelgenubi (Male, Casual)
-                - Vindemiatrix (Female, Gentle)
-                - Sadachbia (Male, Lively)
-                - Sadaltager (Male, Knowledgeable)
-                - Sulafat (Female, Warm)
+          Available voices:
+          - Zephyr (Female, Bright)
+          - Puck (Male, Upbeat)
+          - Charon (Male, Informative)
+          - Kore (Female, Firm)
+          - Fenrir (Male, Excitable)
+          - Leda (Female, Youthful)
+          - Orus (Male, Firm)
+          - Aoede (Female, Breezy)
+          - Callirrhoe (Female, Easy-going)
+          - Autonoe (Female, Bright)
+          - Enceladus (Male, Breathy)
+          - Iapetus (Male, Clear)
+          - Umbriel (Male, Easy-going)
+          - Algieba (Male, Smooth)
+          - Despina (Female, Smooth)
+          - Erinome (Female, Clear)
+          - Algenib (Male, Gravelly)
+          - Rasalgethi (Male, Informative)
+          - Laomedeia (Female, Upbeat)
+          - Achernar (Female, Soft)
+          - Alnilam (Male, Firm)
+          - Schedar (Male, Even)
+          - Gacrux (Female, Mature)
+          - Pulcherrima (Female, Forward)
+          - Achird (Male, Friendly)
+          - Zubenelgenubi (Male, Casual)
+          - Vindemiatrix (Female, Gentle)
+          - Sadachbia (Male, Lively)
+          - Sadaltager (Male, Knowledgeable)
+          - Sulafat (Female, Warm)
         Returns:
-            True if speech was successfully generated and played, False otherwise.
+          True if speech was successfully generated and played, False otherwise.
         """
         return await _synthesize_and_play(
             ctx,
