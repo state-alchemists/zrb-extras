@@ -4,7 +4,9 @@ from zrb import llm_config
 from zrb.builtin import llm_ask, llm_chat_trigger
 
 from zrb_extras.llm.tool import (
-    create_listen_tool, create_speak_tool, fetch_youtube_transcript
+    create_listen_tool,
+    create_speak_tool,
+    fetch_youtube_transcript,
 )
 
 API_KEY = os.getenv("GOOGLE_API_KEY", "")
