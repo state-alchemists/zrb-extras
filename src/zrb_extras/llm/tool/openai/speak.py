@@ -1,38 +1,38 @@
+from __future__ import annotations
+
 import asyncio
 import io
-from typing import Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-import sounddevice as sd
-import soundfile as sf
-from openai import AsyncOpenAI
-from typing_extensions import TypedDict
 from zrb import AnyContext
 
 from zrb_extras.llm.tool.openai.client import get_client
 from zrb_extras.llm.tool.openai.default_config import TTS_MODEL, VOICE_NAME
 
-
-class MultiSpeakerVoice(TypedDict):
-    speaker: str
-    voice: str
+if TYPE_CHECKING:
+    import sounddevice as sd
+    import soundfile as sf
+    from openai import AsyncOpenAI
 
 
 def create_speak_tool(
     client: AsyncOpenAI | None = None,
     api_key: str | None = None,
     base_url: str | None = None,
-    tts_model: str = TTS_MODEL,
-    voice_name: str | list[MultiSpeakerVoice] | None = VOICE_NAME,
-    sample_rate_out: int = 24000,
+    tts_model: str | None = None,
+    voice_name: str | None = None,
+    sample_rate_out: int | None = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
-) -> Callable[
-    [AnyContext, str, str | list[MultiSpeakerVoice] | None], Coroutine[Any, Any, bool]
-]:
+) -> Callable[[AnyContext, str, str | None], Coroutine[Any, Any, bool]]:
+    tts_model = tts_model or TTS_MODEL
+    voice_name = voice_name or VOICE_NAME
+    sample_rate_out = sample_rate_out if sample_rate_out is not None else 24000
+
     async def speak(
         ctx: AnyContext,
         text: str,
-        voice_name: str | list[MultiSpeakerVoice] | None = voice_name,
+        voice_name: str | None = voice_name,
     ) -> bool:
         """Converts text to speech and plays it aloud.
 
@@ -42,9 +42,7 @@ def create_speak_tool(
 
         Args:
           text: The text to be spoken.
-          voice_name: The voice to use.
-            - Provide a voice name string (e.g., "alloy", "echo", "fable", "onyx", "nova", "shimmer").
-            - If a list of speaker-voice mappings is provided, the first voice will be used.
+          voice_name: The voice to use (e.g., "alloy", "echo", "fable", "onyx", "nova", "shimmer").
 
         Returns:
           True if speech was successfully generated and played, False otherwise.
@@ -70,20 +68,17 @@ async def _synthesize_and_play(
     client: AsyncOpenAI,
     text: str,
     tts_model: str,
-    voice_name: str | list[MultiSpeakerVoice] | None = None,
+    voice_name: str | None = None,
     sample_rate_out: int = 24000,
 ):
+    import sounddevice as sd
+    import soundfile as sf
+
     if not text:
         text = "I have nothing to say."
 
     # Resolve voice name
-    selected_voice = VOICE_NAME
-    if isinstance(voice_name, str):
-        selected_voice = voice_name
-    elif isinstance(voice_name, list) and len(voice_name) > 0:
-        # Fallback to the first voice in the list for OpenAI
-        # as it doesn't support multi-speaker config in the same request
-        selected_voice = voice_name[0].get("voice", VOICE_NAME)
+    selected_voice = voice_name or VOICE_NAME
 
     ctx.print("Requesting TTS...", plain=True)
 

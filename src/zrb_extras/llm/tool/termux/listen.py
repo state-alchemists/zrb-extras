@@ -6,6 +6,7 @@ from zrb import AnyContext
 
 
 def create_listen_tool(
+    text_processor: Callable[[str], str] | None = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
 ) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
@@ -33,6 +34,9 @@ def create_listen_tool(
             )
             text = result.stdout.strip()
             ctx.print(f"Heard: {text}", plain=True)
+
+            if text_processor:
+                return text_processor(text)
             return text
         except subprocess.CalledProcessError as e:
             ctx.print(f"Error calling Termux STT: {e}", plain=True)

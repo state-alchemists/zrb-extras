@@ -1,13 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import io
 import time
 from collections import deque
-from typing import Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-import numpy as np
-import sounddevice as sd
-import soundfile as sf
-from openai import AsyncOpenAI
 from zrb import AnyContext
 
 from zrb_extras.llm.tool.openai.client import get_client
@@ -19,16 +17,19 @@ from zrb_extras.llm.tool.openai.default_config import (
     STT_MODEL,
 )
 
+if TYPE_CHECKING:
+    from openai import AsyncOpenAI
+
 
 def create_listen_tool(
-    client: AsyncOpenAI | None = None,
+    client: "AsyncOpenAI | None" = None,
     api_key: str | None = None,
     base_url: str | None = None,
-    stt_model: str = STT_MODEL,
-    sample_rate: int = SAMPLE_RATE,
-    channels: int = CHANNELS,
-    silence_threshold: float = SILENCE_THRESHOLD,
-    max_silence: float = MAX_SILENCE,
+    stt_model: str | None = None,
+    sample_rate: int | None = None,
+    channels: int | None = None,
+    silence_threshold: float | None = None,
+    max_silence: float | None = None,
     text_processor: None | Callable[[str], str] = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
@@ -36,6 +37,13 @@ def create_listen_tool(
     """
     Factory to create a configurable listen tool using OpenAI.
     """
+    stt_model = stt_model or STT_MODEL
+    sample_rate = sample_rate if sample_rate is not None else SAMPLE_RATE
+    channels = channels if channels is not None else CHANNELS
+    silence_threshold = (
+        silence_threshold if silence_threshold is not None else SILENCE_THRESHOLD
+    )
+    max_silence = max_silence if max_silence is not None else MAX_SILENCE
 
     async def listen(ctx: AnyContext) -> str:
         """Listens for and transcribes the user's verbal response.
@@ -47,6 +55,10 @@ def create_listen_tool(
         Returns:
             The transcribed text from the user's speech.
         """
+        import numpy as np
+        import sounddevice as sd
+        import soundfile as sf
+
         # Warm up the sound device to prevent ALSA timeout
         with sd.Stream(samplerate=sample_rate, channels=channels):
             pass
@@ -91,6 +103,9 @@ async def _record_until_silence(
     max_silence: float,
 ):
     """Wait for speech to start, record, then stop after silence."""
+    import numpy as np
+    import sounddevice as sd
+
     q = asyncio.Queue()
     rec_data = []
     PRE_BUFFER_DURATION = 0.5  # seconds
