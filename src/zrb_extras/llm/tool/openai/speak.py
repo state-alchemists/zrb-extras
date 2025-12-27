@@ -28,6 +28,7 @@ def create_speak_tool(
     async def speak(
         ctx: AnyContext,
         text: str,
+        instruction: str | None = None,
         voice_name: str | None = voice_name,
     ) -> bool:
         """Converts text to speech and plays it aloud.
@@ -38,6 +39,7 @@ def create_speak_tool(
 
         Args:
           text: The text to be spoken.
+          instruction: Additional instruction to control the voice of your generated audio.
           voice_name: The voice to use (e.g., "alloy", "echo", "fable", "onyx", "nova", "shimmer").
 
         Returns:
@@ -47,6 +49,7 @@ def create_speak_tool(
             ctx,
             client=get_client(client, api_key, base_url),
             text=text,
+            instruction=instruction,
             tts_model=tts_model,
             voice_name=voice_name,
             sample_rate_out=sample_rate_out,
@@ -63,6 +66,7 @@ async def _synthesize_and_play(
     ctx: AnyContext,
     client: "AsyncOpenAI",
     text: str,
+    instruction: str | None,
     tts_model: str,
     voice_name: str | None = None,
     sample_rate_out: int = 24000,
@@ -70,11 +74,11 @@ async def _synthesize_and_play(
     try:
         import sounddevice as sd
         import soundfile as sf
+        from openai import Omit, omit
     except ImportError:
         raise ImportError(
-            "sounddevice or soundfile is not installed. Please install zrb-extras[openai] or zrb-extras[all]."
+            "openai, sounddevice, or soundfile is not installed. Please install zrb-extras[openai] or zrb-extras[all]."
         )
-
     if not text:
         text = "I have nothing to say."
 
@@ -88,6 +92,7 @@ async def _synthesize_and_play(
         model=tts_model,
         voice=selected_voice,
         input=text,
+        instructions=omit if instruction is None else instruction,
         response_format="wav",  # Get WAV directly
     )
 
