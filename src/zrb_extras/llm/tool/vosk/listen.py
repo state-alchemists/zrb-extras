@@ -1,74 +1,81 @@
 import asyncio
-import io
+import json
+import time
 from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-from typing_extensions import TypedDict
 from zrb import AnyContext
 
-from zrb_extras.llm.tool.google.client import get_client
-from zrb_extras.llm.tool.google.default_config import (
-    CHANNELS,
-    MAX_SILENCE,
-    SAMPLE_RATE,
-    SILENCE_THRESHOLD,
-    STT_MODEL,
-)
+from .default_config import MODEL_LANG, SAMPLE_RATE
 
 if TYPE_CHECKING:
-    from google import genai
-    from google.genai import types
-
-
-class MultiSpeakerVoice(TypedDict):
-    speaker: str
-    voice: str
+    import numpy as np
 
 
 def create_listen_tool(
-    client: "genai.Client | None" = None,
-    api_key: str | None = None,
-    stt_model: str | None = None,
+    model_lang: str | None = None,
+    model_path: str | None = None,
+    model_name: str | None = None,
     sample_rate: int | None = None,
     channels: int | None = None,
     silence_threshold: float | None = None,
     max_silence: float | None = None,
-    text_processor: None | Callable[[str], str] = None,
-    safety_settings: "list[types.SafetySetting] | None" = None,
+    text_processor: Callable[[str], str] | None = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
 ) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
     """
-    Factory to create a configurable listen tool.
+    Factory to create a listen tool using Vosk (offline STT).
     """
-    stt_model = stt_model or STT_MODEL
+    model_lang = model_lang or MODEL_LANG
     sample_rate = sample_rate if sample_rate is not None else SAMPLE_RATE
-    channels = channels if channels is not None else CHANNELS
-    silence_threshold = (
-        silence_threshold if silence_threshold is not None else SILENCE_THRESHOLD
-    )
-    max_silence = max_silence if max_silence is not None else MAX_SILENCE
+    channels = channels if channels is not None else 1
+    silence_threshold = silence_threshold if silence_threshold is not None else 0.01
+    max_silence = max_silence if max_silence is not None else 1.5
 
-    async def listen(ctx: AnyContext) -> str:
-        """Listens for and transcribes the user's verbal response.
+    # Lazy load the model to avoid overhead on every call
+    _model = None
 
-        Use this tool to capture speech from the user.
-        The tool records audio from the microphone, automatically detects when the user
-        has finished speaking, and returns the transcribed text.
-
-        Returns:
-            The transcribed text from the user's speech.
-        """
+    def get_model():
         try:
-            import numpy as np
-            import sounddevice as sd
-            import soundfile as sf
+            from vosk import Model
         except ImportError:
+            # This should be caught by the outer listen try/except or propagate
             raise ImportError(
-                "google-genai dependencies are not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+                "vosk is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
             )
 
-        # Warm up the sound device to prevent ALSA timeout
+        nonlocal _model
+        if _model is None:
+            # Prioritize path, then name, then lang (which defaults to en-us)
+            _model = Model(
+                model_path=model_path, model_name=model_name, lang=model_lang
+            )
+        return _model
+
+    async def listen(ctx: AnyContext) -> str:
+        """Listens for and transcribes speech using Vosk.
+
+        The tool records audio from the microphone, automatically detects when the user
+        has finished speaking, and returns the transcribed text.
+        """
+        try:
+            import sounddevice as sd
+            from vosk import KaldiRecognizer
+        except ImportError:
+            raise ImportError(
+                "vosk or sounddevice is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+            )
+
+        # Get model (this might trigger download on first run, which blocks)
+        # Ideally this should be run in a thread if it blocks for a long time,
+        # but Model() constructor is C-extension based.
+        # Let's wrap it in asyncio.to_thread just in case to avoid blocking the loop
+        model = await asyncio.to_thread(get_model)
+
+        rec = KaldiRecognizer(model, sample_rate)
+
+        # Warm up
         with sd.Stream(samplerate=sample_rate, channels=channels):
             pass
 
@@ -80,23 +87,24 @@ def create_listen_tool(
             silence_threshold=silence_threshold,
             max_silence=max_silence,
         )
-        # Normalize and write to memory buffer
-        audio_data = audio_data / np.max(np.abs(audio_data))
-        buf = io.BytesIO()
-        sf.write(buf, audio_data, sample_rate, format="WAV", subtype="PCM_16")
-        audio_bytes = buf.getvalue()
 
         # Transcribe
-        transcribed_text = _transcribe_audio_bytes(
-            ctx,
-            client=get_client(client, api_key),
-            audio_bytes=audio_bytes,
-            stt_model=stt_model,
-            safety_settings=safety_settings,
-        )
-        if text_processor is None:
-            return transcribed_text
-        return text_processor(transcribed_text)
+        data_bytes = audio_data.tobytes()
+
+        ctx.print("Transcribing...", plain=True)
+        result_text = ""
+        if rec.AcceptWaveform(data_bytes):
+            res = json.loads(rec.Result())
+            result_text = res.get("text", "")
+        else:
+            res = json.loads(rec.FinalResult())
+            result_text = res.get("text", "")
+
+        ctx.print(f"Vosk Heard: {result_text}", plain=True)
+
+        if text_processor:
+            return text_processor(result_text)
+        return result_text
 
     if tool_name is not None:
         listen.__name__ = tool_name
@@ -111,16 +119,14 @@ async def _record_until_silence(
     channels: int,
     silence_threshold: float,
     max_silence: float,
-):
+) -> "np.ndarray":
     """Wait for speech to start, record, then stop after silence."""
-    import time
-
     try:
         import numpy as np
         import sounddevice as sd
     except ImportError:
         raise ImportError(
-            "numpy or sounddevice is not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+            "numpy or sounddevice is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
         )
 
     q = asyncio.Queue()
@@ -132,7 +138,7 @@ async def _record_until_silence(
     def callback(indata, frames, time_info, status):
         q.put_nowait(indata.copy())
 
-    ctx.print("Waiting for speech...", plain=True)
+    ctx.print("Waiting for speech (Vosk)...", plain=True)
     with sd.InputStream(samplerate=sample_rate, channels=channels, callback=callback):
         # First detect speech
         while True:
@@ -166,33 +172,3 @@ async def _record_until_silence(
     # convert to 16-bit integers
     audio_data = (audio_data * 32767).astype(np.int16)
     return audio_data
-
-
-def _transcribe_audio_bytes(
-    ctx: AnyContext,
-    client: "genai.Client",
-    audio_bytes: bytes,
-    stt_model: str,
-    safety_settings: "list[types.SafetySetting] | None" = None,
-) -> str:
-    try:
-        from google.genai import types
-    except ImportError:
-        raise ImportError(
-            "google-genai is not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
-        )
-
-    # Ask model to transcribe (inline audio + instruction style)
-    ctx.print("Requesting transcription...", plain=True)
-    resp = client.models.generate_content(
-        model=stt_model,
-        contents=[
-            types.Part(inline_data=types.Blob(mime_type="audio/wav", data=audio_bytes)),
-            "Please transcribe the audio exactly.",
-        ],
-        config=types.GenerateContentConfig(safety_settings=safety_settings),
-    )
-    # response.text is the canonical convenience property for text outputs
-    text = (resp.text or "").strip()
-    ctx.print("Transcription result:", repr(text), plain=True)
-    return text

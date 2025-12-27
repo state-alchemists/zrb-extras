@@ -2,17 +2,17 @@ import asyncio
 import base64
 import io
 import wave
-from typing import Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-import sounddevice as sd
-import soundfile as sf
-from google import genai
-from google.genai import types
 from typing_extensions import TypedDict
 from zrb import AnyContext
 
 from zrb_extras.llm.tool.google.client import get_client
 from zrb_extras.llm.tool.google.default_config import TTS_MODEL, VOICE_NAME
+
+if TYPE_CHECKING:
+    from google import genai
+    from google.genai import types
 
 
 class MultiSpeakerVoice(TypedDict):
@@ -21,17 +21,21 @@ class MultiSpeakerVoice(TypedDict):
 
 
 def create_speak_tool(
-    client: genai.Client | None = None,
+    client: "genai.Client | None" = None,
     api_key: str | None = None,
-    tts_model: str = TTS_MODEL,
-    voice_name: str | list[MultiSpeakerVoice] | None = VOICE_NAME,
-    sample_rate_out: int = 24000,
-    safety_settings: list[types.SafetySetting] | None = None,
+    tts_model: str | None = None,
+    voice_name: str | list[MultiSpeakerVoice] | None = None,
+    sample_rate_out: int | None = None,
+    safety_settings: "list[types.SafetySetting] | None" = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
 ) -> Callable[
     [AnyContext, str, str | list[MultiSpeakerVoice] | None], Coroutine[Any, Any, bool]
 ]:
+    tts_model = tts_model or TTS_MODEL
+    voice_name = voice_name or VOICE_NAME
+    sample_rate_out = sample_rate_out if sample_rate_out is not None else 24000
+
     async def speak(
         ctx: AnyContext,
         text: str,
@@ -106,13 +110,22 @@ def create_speak_tool(
 
 async def _synthesize_and_play(
     ctx: AnyContext,
-    client: genai.Client,
+    client: "genai.Client",
     text: str,
     tts_model: str,
     voice_name: str | list[MultiSpeakerVoice] | None = None,
     sample_rate_out: int = 24000,
-    safety_settings: list[types.SafetySetting] | None = None,
+    safety_settings: "list[types.SafetySetting] | None" = None,
 ):
+    try:
+        import sounddevice as sd
+        import soundfile as sf
+        from google.genai import types
+    except ImportError:
+        raise ImportError(
+            "google-genai dependencies are not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+        )
+
     if not text:
         text = "I have nothing to say."
     ctx.print("Requesting TTS...", plain=True)

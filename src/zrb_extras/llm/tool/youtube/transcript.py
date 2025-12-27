@@ -1,11 +1,5 @@
 from urllib.parse import parse_qs, urlparse
 
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import (
-    NoTranscriptFound,
-    TranscriptsDisabled,
-    VideoUnavailable,
-)
 from zrb import AnyContext
 
 
@@ -13,14 +7,26 @@ def fetch_youtube_transcript(ctx: AnyContext, url: str):
     """
     Get transcript of a Youtube video
     """
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        from youtube_transcript_api._errors import (
+            NoTranscriptFound,
+            TranscriptsDisabled,
+            VideoUnavailable,
+        )
+    except ImportError:
+        raise ImportError(
+            "youtube-transcript-api is not installed. Please install zrb-extras[youtube] or zrb-extras[all]."
+        )
+
     video_id = extract_video_id(url)
     if not video_id:
         raise ValueError("Could not extract a video id from the provided string/url")
     ctx.print(f"VIDEO ID: {video_id}", plain=True)
     try:
         # get_transcript / get_transcripts / fetch — either is fine; common call:
-        transcript = YouTubeTranscriptApi().fetch(video_id)
-        return " ".join([snippet.text for snippet in transcript.snippets])
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        return " ".join([snippet["text"] for snippet in transcript])
     except TranscriptsDisabled:
         ctx.log_error("Transcripts are disabled for this video.")
     except NoTranscriptFound:

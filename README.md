@@ -50,24 +50,30 @@ from zrb.builtin import llm_ask
 from zrb import llm_config
 from zrb_extras.llm.tool import create_listen_tool, create_speak_tool
 
-API_KEY = os.getenv("GOOGLE_API_KEY", "")
+# Valid modes: "google", "openai", "termux", "vosk"
+VOICE_MODE = os.getenv("VOICE_MODE", "vosk")
+if VOICE_MODE not in ("google", "openai", "termux", "vosk"):
+    VOICE_MODE = "vosk"
 
 llm_ask.add_tool(
     create_speak_tool(
-        api_key=API_KEY,  # Optional, by default taken from GEMINI_API_KEY or GOOOGLE_API_KEY
-        stt_model="gemini-2.5-flash-preview-tts",  # Optional
-        voice_name="Sulafat",  # Optional (https://ai.google.dev/gemini-api/docs/speech-generation#voices)
+        mode=VOICE_MODE,
+        genai_tts_model="gemini-2.5-flash-preview-tts",  # Optional
+        genai_voice_name="Sulafat",  # Optional
+        openai_tts_model="tts-1",  # Optional
+        openai_voice_name="alloy",  # Optional
         sample_rate_out=24000,  # Optional
     )
 )
 llm_ask.add_tool(
     create_listen_tool(
-        api_key=API_KEY,  # Optional, by default taken from GEMINI_API_KEY or GOOOGLE_API_KEY
-        tts_model="gemini-2.5-flash",  # Optional
+        mode=VOICE_MODE,
+        genai_stt_model="gemini-2.5-flash",  # Optional
+        openai_stt_model="whisper-1",  # Optional
         sample_rate=16000,  # Optional
         channels=1,  # Optional
-        silence_threshold=0.01,  # Optional (smaller means more sensitive)
-        max_silence=4.0,  # Optional (4 second silence before stop listening)
+        silence_threshold=0.01,  # Optional
+        max_silence=4.0,  # Optional
     )
 )
 

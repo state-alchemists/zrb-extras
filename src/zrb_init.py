@@ -9,30 +9,37 @@ from zrb_extras.llm.tool import (
     fetch_youtube_transcript,
 )
 
-API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+VOICE_MODE = os.getenv("VOICE_MODE", "vosk").strip().lower()
+if VOICE_MODE not in ("google", "openai", "termux", "vosk"):
+    VOICE_MODE = "vosk"
 
-llm_chat_trigger.add_trigger(
-    create_listen_tool(
-        api_key=API_KEY,
-        stt_model="gemini-2.5-flash",
-        sample_rate=16000,
-        channels=1,
-        silence_threshold=0.01,
-        max_silence=4.0,
-    )
+listen = create_listen_tool(
+    mode=VOICE_MODE,
+    genai_api_key=GOOGLE_API_KEY,
+    genai_stt_model="gemini-2.5-flash",
+    openai_api_key=OPENAI_API_KEY,
+    openai_stt_model="whisper-1",
+    sample_rate=16000,
+    channels=1,
+    silence_threshold=0.01,
+    max_silence=1.5,
+    text_processor=lambda txt: f"> Note: Reply the following user message with speak tool :\n{txt}",  # noqa
+)
+speak = create_speak_tool(
+    mode=VOICE_MODE,
+    genai_api_key=GOOGLE_API_KEY,
+    genai_tts_model="gemini-2.5-flash-preview-tts",
+    genai_voice_name="sulafat",
+    openai_api_key=OPENAI_API_KEY,
+    openai_tts_model="tts-1",
+    openai_voice_name="alloy",
+    sample_rate_out=24000,
 )
 
-llm_ask.add_tool(
-    create_speak_tool(
-        api_key=API_KEY,
-        tts_model="gemini-2.5-flash-preview-tts",
-        voice_name="sulafat",
-        sample_rate_out=24000,
-        tool_name="speaking",
-    ),
-    fetch_youtube_transcript,
-)
-
+llm_chat_trigger.add_trigger(listen)
+llm_ask.add_tool(speak, fetch_youtube_transcript)
 
 # Optional: allow LLM to speak or listen without asking for user approval
 if not llm_config.default_yolo_mode:
