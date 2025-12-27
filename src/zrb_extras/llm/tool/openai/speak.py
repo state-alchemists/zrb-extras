@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import io
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
@@ -10,13 +8,11 @@ from zrb_extras.llm.tool.openai.client import get_client
 from zrb_extras.llm.tool.openai.default_config import TTS_MODEL, VOICE_NAME
 
 if TYPE_CHECKING:
-    import sounddevice as sd
-    import soundfile as sf
     from openai import AsyncOpenAI
 
 
 def create_speak_tool(
-    client: AsyncOpenAI | None = None,
+    client: "AsyncOpenAI | None" = None,
     api_key: str | None = None,
     base_url: str | None = None,
     tts_model: str | None = None,
@@ -65,14 +61,19 @@ def create_speak_tool(
 
 async def _synthesize_and_play(
     ctx: AnyContext,
-    client: AsyncOpenAI,
+    client: "AsyncOpenAI",
     text: str,
     tts_model: str,
     voice_name: str | None = None,
     sample_rate_out: int = 24000,
 ):
-    import sounddevice as sd
-    import soundfile as sf
+    try:
+        import sounddevice as sd
+        import soundfile as sf
+    except ImportError:
+        raise ImportError(
+            "sounddevice or soundfile is not installed. Please install zrb-extras[openai] or zrb-extras[all]."
+        )
 
     if not text:
         text = "I have nothing to say."

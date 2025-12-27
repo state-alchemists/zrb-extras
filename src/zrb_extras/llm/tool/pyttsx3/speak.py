@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 from typing import Any, Callable, Coroutine
 
@@ -26,7 +24,12 @@ def create_speak_tool(
         factory_volume = volume
 
         def _speak_sync():
-            import pyttsx3
+            try:
+                import pyttsx3
+            except ImportError:
+                raise ImportError(
+                    "pyttsx3 is not installed. Please install zrb-extras[tts] or zrb-extras[all]."
+                )
 
             try:
                 engine = pyttsx3.init()

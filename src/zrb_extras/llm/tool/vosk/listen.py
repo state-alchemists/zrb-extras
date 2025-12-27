@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import json
 import time
@@ -39,7 +37,13 @@ def create_listen_tool(
     _model = None
 
     def get_model():
-        from vosk import Model
+        try:
+            from vosk import Model
+        except ImportError:
+            # This should be caught by the outer listen try/except or propagate
+            raise ImportError(
+                "vosk is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+            )
 
         nonlocal _model
         if _model is None:
@@ -55,8 +59,13 @@ def create_listen_tool(
         The tool records audio from the microphone, automatically detects when the user
         has finished speaking, and returns the transcribed text.
         """
-        import sounddevice as sd
-        from vosk import KaldiRecognizer
+        try:
+            import sounddevice as sd
+            from vosk import KaldiRecognizer
+        except ImportError:
+            raise ImportError(
+                "vosk or sounddevice is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+            )
 
         # Get model (this might trigger download on first run, which blocks)
         # Ideally this should be run in a thread if it blocks for a long time,
@@ -112,8 +121,13 @@ async def _record_until_silence(
     max_silence: float,
 ) -> "np.ndarray":
     """Wait for speech to start, record, then stop after silence."""
-    import numpy as np
-    import sounddevice as sd
+    try:
+        import numpy as np
+        import sounddevice as sd
+    except ImportError:
+        raise ImportError(
+            "numpy or sounddevice is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+        )
 
     q = asyncio.Queue()
     rec_data = []

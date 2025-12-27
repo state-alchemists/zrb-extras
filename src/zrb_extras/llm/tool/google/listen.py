@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import io
 from collections import deque
@@ -18,7 +16,6 @@ from zrb_extras.llm.tool.google.default_config import (
 )
 
 if TYPE_CHECKING:
-    import numpy as np
     from google import genai
     from google.genai import types
 
@@ -29,7 +26,7 @@ class MultiSpeakerVoice(TypedDict):
 
 
 def create_listen_tool(
-    client: genai.Client | None = None,
+    client: "genai.Client | None" = None,
     api_key: str | None = None,
     stt_model: str | None = None,
     sample_rate: int | None = None,
@@ -37,7 +34,7 @@ def create_listen_tool(
     silence_threshold: float | None = None,
     max_silence: float | None = None,
     text_processor: None | Callable[[str], str] = None,
-    safety_settings: list[types.SafetySetting] | None = None,
+    safety_settings: "list[types.SafetySetting] | None" = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
 ) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
@@ -62,9 +59,14 @@ def create_listen_tool(
         Returns:
             The transcribed text from the user's speech.
         """
-        import numpy as np
-        import sounddevice as sd
-        import soundfile as sf
+        try:
+            import numpy as np
+            import sounddevice as sd
+            import soundfile as sf
+        except ImportError:
+            raise ImportError(
+                "google-genai dependencies are not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+            )
 
         # Warm up the sound device to prevent ALSA timeout
         with sd.Stream(samplerate=sample_rate, channels=channels):
@@ -113,8 +115,13 @@ async def _record_until_silence(
     """Wait for speech to start, record, then stop after silence."""
     import time
 
-    import numpy as np
-    import sounddevice as sd
+    try:
+        import numpy as np
+        import sounddevice as sd
+    except ImportError:
+        raise ImportError(
+            "numpy or sounddevice is not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+        )
 
     q = asyncio.Queue()
     rec_data = []
@@ -163,12 +170,17 @@ async def _record_until_silence(
 
 def _transcribe_audio_bytes(
     ctx: AnyContext,
-    client: genai.Client,
+    client: "genai.Client",
     audio_bytes: bytes,
     stt_model: str,
-    safety_settings: list[types.SafetySetting] | None = None,
+    safety_settings: "list[types.SafetySetting] | None" = None,
 ) -> str:
-    from google.genai import types
+    try:
+        from google.genai import types
+    except ImportError:
+        raise ImportError(
+            "google-genai is not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+        )
 
     # Ask model to transcribe (inline audio + instruction style)
     ctx.print("Requesting transcription...", plain=True)

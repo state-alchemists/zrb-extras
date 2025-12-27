@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import io
 import time
@@ -55,9 +53,14 @@ def create_listen_tool(
         Returns:
             The transcribed text from the user's speech.
         """
-        import numpy as np
-        import sounddevice as sd
-        import soundfile as sf
+        try:
+            import numpy as np
+            import sounddevice as sd
+            import soundfile as sf
+        except ImportError:
+            raise ImportError(
+                "openai dependencies are not installed. Please install zrb-extras[openai] or zrb-extras[all]."
+            )
 
         # Warm up the sound device to prevent ALSA timeout
         with sd.Stream(samplerate=sample_rate, channels=channels):
@@ -103,8 +106,13 @@ async def _record_until_silence(
     max_silence: float,
 ):
     """Wait for speech to start, record, then stop after silence."""
-    import numpy as np
-    import sounddevice as sd
+    try:
+        import numpy as np
+        import sounddevice as sd
+    except ImportError:
+        raise ImportError(
+            "numpy or sounddevice is not installed. Please install zrb-extras[openai] or zrb-extras[all]."
+        )
 
     q = asyncio.Queue()
     rec_data = []
@@ -153,7 +161,7 @@ async def _record_until_silence(
 
 async def _transcribe_audio_bytes(
     ctx: AnyContext,
-    client: AsyncOpenAI,
+    client: "AsyncOpenAI",
     audio_bytes: bytes,
     stt_model: str,
 ) -> str:

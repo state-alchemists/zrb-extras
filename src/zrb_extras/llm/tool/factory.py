@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Literal
 
 from zrb import AnyContext
@@ -26,7 +24,7 @@ Mode = Literal["google", "openai", "termux", "vosk"]
 
 
 def create_listen_tool(
-    mode: Mode = "google",
+    mode: Mode = "vosk",
     # Common
     tool_name: str | None = None,
     tool_description: str | None = None,
@@ -105,19 +103,19 @@ def create_listen_tool(
 
 
 def create_speak_tool(
-    mode: Mode = "google",
+    mode: Mode = "vosk",
     # Common
     tool_name: str | None = None,
     tool_description: str | None = None,
     sample_rate_out: int | None = None,
     # Google (GenAI)
-    genai_client: genai.Client | None = None,
+    genai_client: "genai.Client | None" = None,
     genai_api_key: str | None = None,
     genai_tts_model: str | None = None,
     genai_voice_name: "str | list[GoogleMultiSpeakerVoice] | None" = None,
     genai_safety_settings: "list[types.SafetySetting] | None" = None,
     # OpenAI
-    openai_client: AsyncOpenAI | None = None,
+    openai_client: "AsyncOpenAI | None" = None,
     openai_api_key: str | None = None,
     openai_base_url: str | None = None,
     openai_tts_model: str | None = None,

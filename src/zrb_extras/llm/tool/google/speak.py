@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import base64
 import io
@@ -13,8 +11,6 @@ from zrb_extras.llm.tool.google.client import get_client
 from zrb_extras.llm.tool.google.default_config import TTS_MODEL, VOICE_NAME
 
 if TYPE_CHECKING:
-    import sounddevice as sd
-    import soundfile as sf
     from google import genai
     from google.genai import types
 
@@ -25,12 +21,12 @@ class MultiSpeakerVoice(TypedDict):
 
 
 def create_speak_tool(
-    client: genai.Client | None = None,
+    client: "genai.Client | None" = None,
     api_key: str | None = None,
     tts_model: str | None = None,
     voice_name: str | list[MultiSpeakerVoice] | None = None,
     sample_rate_out: int | None = None,
-    safety_settings: list[types.SafetySetting] | None = None,
+    safety_settings: "list[types.SafetySetting] | None" = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
 ) -> Callable[
@@ -114,16 +110,21 @@ def create_speak_tool(
 
 async def _synthesize_and_play(
     ctx: AnyContext,
-    client: genai.Client,
+    client: "genai.Client",
     text: str,
     tts_model: str,
     voice_name: str | list[MultiSpeakerVoice] | None = None,
     sample_rate_out: int = 24000,
-    safety_settings: list[types.SafetySetting] | None = None,
+    safety_settings: "list[types.SafetySetting] | None" = None,
 ):
-    import sounddevice as sd
-    import soundfile as sf
-    from google.genai import types
+    try:
+        import sounddevice as sd
+        import soundfile as sf
+        from google.genai import types
+    except ImportError:
+        raise ImportError(
+            "google-genai dependencies are not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+        )
 
     if not text:
         text = "I have nothing to say."
