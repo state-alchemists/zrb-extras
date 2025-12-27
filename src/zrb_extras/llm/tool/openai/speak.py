@@ -40,7 +40,18 @@ def create_speak_tool(
         Args:
           text: The text to be spoken.
           instruction: Additional instruction to control the voice of your generated audio.
-          voice_name: The voice to use (e.g., "alloy", "echo", "fable", "onyx", "nova", "shimmer").
+          voice_name: The voice to use.
+
+          Available voices:
+          - alloy (Neutral, Versatile)
+          - ash (Male, Clear, Confident)
+          - coral (Female, Warm, Friendly)
+          - echo (Male, Warm, Resonant)
+          - fable (Male, Clear, British Accent)
+          - onyx (Male, Deep, Commanding)
+          - nova (Female, Bright, Energetic)
+          - sage (Female, Professional, Clear)
+          - shimmer (Female, Smooth, Calming)
 
         Returns:
           True if speech was successfully generated and played, False otherwise.
