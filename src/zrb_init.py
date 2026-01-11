@@ -25,7 +25,9 @@ listen = create_listen_tool(
     channels=1,
     silence_threshold=0.01,
     max_silence=1.5,
-    text_processor=lambda txt: f"> Note: Respond to the following user message with with speak tool :\n{txt}",  # noqa
+    text_processor=lambda txt: (
+            f"> Note: Respond to the following user message with with speak tool :\n{txt}"
+    ),
     use_sound_classifier=True,
     classification_system_prompt=(
         "You are a sound classifier. Analyze the provided transcript "
