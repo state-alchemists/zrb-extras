@@ -2,14 +2,14 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, Literal
 
 from zrb import AnyContext
 
-from zrb_extras.llm.tool.google import create_listen_tool as create_google_listen_tool
-from zrb_extras.llm.tool.google import create_speak_tool as create_google_speak_tool
-from zrb_extras.llm.tool.openai import create_listen_tool as create_openai_listen_tool
-from zrb_extras.llm.tool.openai import create_speak_tool as create_openai_speak_tool
-from zrb_extras.llm.tool.pyttsx3 import create_speak_tool as create_pyttsx3_speak_tool
-from zrb_extras.llm.tool.termux import create_listen_tool as create_termux_listen_tool
-from zrb_extras.llm.tool.termux import create_speak_tool as create_termux_speak_tool
-from zrb_extras.llm.tool.vosk import create_listen_tool as create_vosk_listen_tool
+from zrb_extras.llm.tool.google import create_listen_tool as create_google_listen_tool  # noqa
+from zrb_extras.llm.tool.google import create_speak_tool as create_google_speak_tool  # noqa
+from zrb_extras.llm.tool.openai import create_listen_tool as create_openai_listen_tool  # noqa
+from zrb_extras.llm.tool.openai import create_speak_tool as create_openai_speak_tool  # noqa
+from zrb_extras.llm.tool.pyttsx3 import create_speak_tool as create_pyttsx3_speak_tool  # noqa
+from zrb_extras.llm.tool.termux import create_listen_tool as create_termux_listen_tool  # noqa
+from zrb_extras.llm.tool.termux import create_speak_tool as create_termux_speak_tool  # noqa
+from zrb_extras.llm.tool.vosk import create_listen_tool as create_vosk_listen_tool  # noqa
 
 if TYPE_CHECKING:
     from google import genai
@@ -82,6 +82,10 @@ def create_listen_tool(
         )
     if mode == "termux":
         return create_termux_listen_tool(
+            sample_rate=sample_rate,
+            channels=channels,
+            silence_threshold=silence_threshold,
+            max_silence=max_silence,
             text_processor=text_processor,
             tool_name=tool_name,
             tool_description=tool_description,

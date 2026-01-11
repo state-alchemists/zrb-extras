@@ -4,6 +4,16 @@ from typing import Any, Callable, Coroutine
 
 from zrb import AnyContext
 
+from .default_config import (
+    TTS_ENGINE,
+    TTS_LANGUAGE,
+    TTS_PITCH,
+    TTS_RATE,
+    TTS_REGION,
+    TTS_STREAM,
+    TTS_VOICE_NAME,
+)
+
 
 def create_speak_tool(
     language: str | None = None,
@@ -19,6 +29,13 @@ def create_speak_tool(
     """
     Factory to create a speak tool using Termux API.
     """
+    language = language or TTS_LANGUAGE
+    voice_name = voice_name or TTS_VOICE_NAME
+    engine = engine or TTS_ENGINE
+    region = region or TTS_REGION
+    rate = rate if rate is not None else TTS_RATE
+    pitch = pitch if pitch is not None else TTS_PITCH
+    stream = stream or TTS_STREAM
 
     async def speak(
         ctx: AnyContext, text: str, voice_name: str | None = voice_name

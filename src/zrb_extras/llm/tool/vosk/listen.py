@@ -1,15 +1,12 @@
 import asyncio
 import json
-import time
-from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Coroutine
+from typing import Any, Callable, Coroutine
 
 from zrb import AnyContext
 
-from .default_config import MODEL_LANG, SAMPLE_RATE
+from zrb_extras.llm.tool.vad import record_until_silence
 
-if TYPE_CHECKING:
-    import numpy as np
+from .default_config import MODEL_LANG, SAMPLE_RATE
 
 
 def create_listen_tool(
@@ -64,7 +61,8 @@ def create_listen_tool(
             from vosk import KaldiRecognizer
         except ImportError:
             raise ImportError(
-                "vosk or sounddevice is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+                "vosk or sounddevice is not installed. "
+                "Please install zrb-extras[vosk] or zrb-extras[all]."
             )
 
         # Get model (this might trigger download on first run, which blocks)
@@ -80,7 +78,7 @@ def create_listen_tool(
             pass
 
         # Record audio
-        audio_data = await _record_until_silence(
+        audio_data = await record_until_silence(
             ctx,
             sample_rate=sample_rate,
             channels=channels,
@@ -111,64 +109,3 @@ def create_listen_tool(
     if tool_description is not None:
         listen.__doc__ = tool_description
     return listen
-
-
-async def _record_until_silence(
-    ctx: AnyContext,
-    sample_rate: int,
-    channels: int,
-    silence_threshold: float,
-    max_silence: float,
-) -> "np.ndarray":
-    """Wait for speech to start, record, then stop after silence."""
-    try:
-        import numpy as np
-        import sounddevice as sd
-    except ImportError:
-        raise ImportError(
-            "numpy or sounddevice is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
-        )
-
-    q = asyncio.Queue()
-    rec_data = []
-    PRE_BUFFER_DURATION = 0.5  # seconds
-    pre_buffer_size = int(PRE_BUFFER_DURATION * sample_rate / 1024)  # in blocks
-    pre_buffer = deque(maxlen=pre_buffer_size)
-
-    def callback(indata, frames, time_info, status):
-        q.put_nowait(indata.copy())
-
-    ctx.print("Waiting for speech (Vosk)...", plain=True)
-    with sd.InputStream(samplerate=sample_rate, channels=channels, callback=callback):
-        # First detect speech
-        while True:
-            block = await q.get()
-            pre_buffer.append(block)
-            volume_norm = np.linalg.norm(block) / len(block)
-            if volume_norm > silence_threshold:
-                ctx.print("Speech detected, recording...", plain=True)
-                rec_data.extend(pre_buffer)
-                rec_data.append(block)
-                break
-
-        # Record until silence for max_silence seconds
-        silence_start = None
-        while True:
-            block = await q.get()
-            rec_data.append(block)
-            volume_norm = np.linalg.norm(block) / len(block)
-            ctx.print(f"Volume: {volume_norm:.4f}", end="\r", plain=True)
-            if volume_norm < silence_threshold:
-                if silence_start is None:
-                    silence_start = time.time()
-                elif time.time() - silence_start > max_silence:
-                    ctx.print("\nSilence detected, stop recording.", plain=True)
-                    break
-            else:
-                silence_start = None
-
-    # Combine into a single numpy array
-    audio_data = np.concatenate(rec_data, axis=0)
-    # convert to 16-bit integers
-    audio_data = (audio_data * 32767).astype(np.int16)
-    return audio_data

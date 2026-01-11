@@ -1,6 +1,4 @@
-import asyncio
 import io
-from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from typing_extensions import TypedDict
@@ -14,6 +12,7 @@ from zrb_extras.llm.tool.google.default_config import (
     SILENCE_THRESHOLD,
     STT_MODEL,
 )
+from zrb_extras.llm.tool.vad import record_until_silence
 
 if TYPE_CHECKING:
     from google import genai
@@ -45,7 +44,8 @@ def create_listen_tool(
     sample_rate = sample_rate if sample_rate is not None else SAMPLE_RATE
     channels = channels if channels is not None else CHANNELS
     silence_threshold = (
-        silence_threshold if silence_threshold is not None else SILENCE_THRESHOLD
+        silence_threshold
+        if silence_threshold is not None else SILENCE_THRESHOLD
     )
     max_silence = max_silence if max_silence is not None else MAX_SILENCE
 
@@ -65,7 +65,8 @@ def create_listen_tool(
             import soundfile as sf
         except ImportError:
             raise ImportError(
-                "google-genai dependencies are not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+                "google-genai dependencies are not installed. "
+                "Please install zrb-extras[google-genai] or zrb-extras[all]."
             )
 
         # Warm up the sound device to prevent ALSA timeout
@@ -73,7 +74,7 @@ def create_listen_tool(
             pass
 
         # Record audio
-        audio_data = await _record_until_silence(
+        audio_data = await record_until_silence(
             ctx,
             sample_rate=sample_rate,
             channels=channels,
@@ -105,69 +106,6 @@ def create_listen_tool(
     return listen
 
 
-async def _record_until_silence(
-    ctx: AnyContext,
-    sample_rate: int,
-    channels: int,
-    silence_threshold: float,
-    max_silence: float,
-):
-    """Wait for speech to start, record, then stop after silence."""
-    import time
-
-    try:
-        import numpy as np
-        import sounddevice as sd
-    except ImportError:
-        raise ImportError(
-            "numpy or sounddevice is not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
-        )
-
-    q = asyncio.Queue()
-    rec_data = []
-    PRE_BUFFER_DURATION = 0.5  # seconds
-    pre_buffer_size = int(PRE_BUFFER_DURATION * sample_rate / 1024)  # in blocks
-    pre_buffer = deque(maxlen=pre_buffer_size)
-
-    def callback(indata, frames, time_info, status):
-        q.put_nowait(indata.copy())
-
-    ctx.print("Waiting for speech...", plain=True)
-    with sd.InputStream(samplerate=sample_rate, channels=channels, callback=callback):
-        # First detect speech
-        while True:
-            block = await q.get()
-            pre_buffer.append(block)
-            volume_norm = np.linalg.norm(block) / len(block)
-            if volume_norm > silence_threshold:
-                ctx.print("Speech detected, recording...", plain=True)
-                rec_data.extend(pre_buffer)
-                rec_data.append(block)
-                break
-
-        # Record until silence for max_silence seconds
-        silence_start = None
-        while True:
-            block = await q.get()
-            rec_data.append(block)
-            volume_norm = np.linalg.norm(block) / len(block)
-            ctx.print(f"Volume: {volume_norm:.4f}", end="\r", plain=True)
-            if volume_norm < silence_threshold:
-                if silence_start is None:
-                    silence_start = time.time()
-                elif time.time() - silence_start > max_silence:
-                    ctx.print("\nSilence detected, stop recording.", plain=True)
-                    break
-            else:
-                silence_start = None
-
-    # Combine into a single numpy array
-    audio_data = np.concatenate(rec_data, axis=0)
-    # convert to 16-bit integers
-    audio_data = (audio_data * 32767).astype(np.int16)
-    return audio_data
-
-
 def _transcribe_audio_bytes(
     ctx: AnyContext,
     client: "genai.Client",
@@ -179,7 +117,8 @@ def _transcribe_audio_bytes(
         from google.genai import types
     except ImportError:
         raise ImportError(
-            "google-genai is not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+            "google-genai is not installed. "
+            "Please install zrb-extras[google-genai] or zrb-extras[all]."
         )
 
     # Ask model to transcribe (inline audio + instruction style)
