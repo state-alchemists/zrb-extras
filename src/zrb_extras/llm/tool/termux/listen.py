@@ -3,6 +3,7 @@ import subprocess
 from typing import Any, Callable, Coroutine
 
 from zrb import AnyContext
+
 from zrb_extras.llm.tool.vad import record_until_silence
 
 from .default_config import (
@@ -40,7 +41,7 @@ def create_listen_tool(
             The transcribed text from the user's speech.
         """
         # Try to use VAD if dependencies are available to 'wait' for speech
-        # before popping up the Termux STT dialog. 
+        # before popping up the Termux STT dialog.
         # This helps in noisy environments where you don't want the dialog
         # to stay open or trigger prematurely.
         try:
@@ -53,7 +54,7 @@ def create_listen_tool(
                 sample_rate=sample_rate,
                 channels=channels,
                 silence_threshold=silence_threshold,
-                max_silence=0.1  # Very short max_silence because we just want to detect the start
+                max_silence=0.1,  # Very short max_silence because we just want to detect the start
             )
         except (ImportError, Exception):
             # Fallback to direct call if sounddevice/numpy missing or fails

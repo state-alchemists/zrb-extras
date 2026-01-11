@@ -44,8 +44,7 @@ def create_listen_tool(
     sample_rate = sample_rate if sample_rate is not None else SAMPLE_RATE
     channels = channels if channels is not None else CHANNELS
     silence_threshold = (
-        silence_threshold
-        if silence_threshold is not None else SILENCE_THRESHOLD
+        silence_threshold if silence_threshold is not None else SILENCE_THRESHOLD
     )
     max_silence = max_silence if max_silence is not None else MAX_SILENCE
 

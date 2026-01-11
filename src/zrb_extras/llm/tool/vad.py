@@ -87,7 +87,7 @@ async def record_until_silence(
     async with _audio_stream(ctx, sample_rate, channels) as queue:
         # 1. Calibration Phase
         calibration_frames = await _calibrate_noise(queue)
-        
+
         # Calculate initial noise statistics
         if calibration_frames:
             energies = [np.linalg.norm(b) / len(b) for b in calibration_frames]
@@ -97,7 +97,7 @@ async def record_until_silence(
 
         # Initialize VAD State
         vad_state = VADState(initial_noise_level, silence_threshold)
-        
+
         ctx.print(
             f"Noise level: {vad_state.noise_level:.6f}, "
             f"Threshold: {vad_state.threshold:.6f}",
@@ -166,7 +166,7 @@ async def _calibrate_noise(queue: asyncio.Queue) -> List["np.ndarray"]:
             calibration_frames.append(block)
         except asyncio.TimeoutError:
             break
-            
+
     return calibration_frames
 
 
@@ -185,7 +185,7 @@ async def _record_loop(
 
     rec_data: List[np.ndarray] = []
     pre_buffer: Deque[np.ndarray] = collections.deque()
-    
+
     # Pre-populate pre-buffer with calibration frames to avoid losing immediate speech
     # (though typically calibration is noise-only, it's safer to keep)
     if initial_buffer:
@@ -196,7 +196,11 @@ async def _record_loop(
             # Wait for audio block
             block = await asyncio.wait_for(queue.get(), timeout=SPEECH_TIMEOUT)
         except asyncio.TimeoutError:
-            msg = "Recording timed out." if vad_state.speech_started else "No speech detected."
+            msg = (
+                "Recording timed out."
+                if vad_state.speech_started
+                else "No speech detected."
+            )
             ctx.print(msg, plain=True)
             break
 

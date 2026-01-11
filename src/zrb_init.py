@@ -25,7 +25,15 @@ listen = create_listen_tool(
     channels=1,
     silence_threshold=0.01,
     max_silence=1.5,
-    text_processor=lambda txt: f"> Note: Reply the following user message with speak tool :\n{txt}",  # noqa
+    text_processor=lambda txt: f"> Note: Respond to the following user message with with speak tool :\n{txt}",  # noqa
+    use_sound_classifier=True,
+    classification_system_prompt=(
+        "You are a sound classifier. Analyze the provided transcript "
+        "and determine if it contains speech that should be handled "
+        "(i.e., user mention your name, Zaruba). "
+        "Consider background noise, non-speech sounds, and unclear speech. "
+        "If unsure, assume it's speech to be safe."
+    ),
 )
 speak = create_speak_tool(
     mode=VOICE_MODE,

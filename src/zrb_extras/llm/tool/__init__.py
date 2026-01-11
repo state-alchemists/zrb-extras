@@ -4,9 +4,15 @@ from zrb_extras.llm.tool.factory import (
 )
 from zrb_extras.llm.tool.google import create_listen_tool as create_google_listen_tool
 from zrb_extras.llm.tool.google import create_speak_tool as create_google_speak_tool
+from zrb_extras.llm.tool.listen_wrapper import create_listen_tool_with_classification
 from zrb_extras.llm.tool.openai import create_listen_tool as create_openai_listen_tool
 from zrb_extras.llm.tool.openai import create_speak_tool as create_openai_speak_tool
 from zrb_extras.llm.tool.pyttsx3 import create_speak_tool as create_pyttsx3_speak_tool
+from zrb_extras.llm.tool.sound_classifier import (
+    SoundClassification,
+    classify_sound,
+    create_sound_classifier,
+)
 from zrb_extras.llm.tool.termux import create_listen_tool as create_termux_listen_tool
 from zrb_extras.llm.tool.termux import create_speak_tool as create_termux_speak_tool
 from zrb_extras.llm.tool.vosk import create_listen_tool as create_vosk_listen_tool
@@ -24,4 +30,9 @@ __all__ = [
     "create_vosk_listen_tool",
     "create_pyttsx3_speak_tool",
     "fetch_youtube_transcript",
+    # Sound classification
+    "SoundClassification",
+    "classify_sound",
+    "create_sound_classifier",
+    "create_listen_tool_with_classification",
 ]

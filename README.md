@@ -74,12 +74,82 @@ llm_ask.add_tool(
         channels=1,  # Optional
         silence_threshold=0.01,  # Optional
         max_silence=4.0,  # Optional
+        # Sound Classification (optional)
+        use_sound_classifier=True,  # Enable sound classification
+        classification_model=None,  # Use default small model
+        classification_system_prompt="Classify if the transcript contains actual speech or just background noise/fillers",
+        classification_retries=2,  # Retry classification on failure
+        fail_safe=True,  # Default to handling as speech if classification fails
     )
 )
 
 # Optional: allow LLM to speak or listen without asking for user approval
 if not llm_config.default_yolo_mode:
     llm_config.set_default_yolo_mode(["speak", "listen"])
+
+
+## Sound Classification Feature
+
+The `create_listen_tool` now includes an optional sound classification feature that uses an LLM to analyze transcripts and determine if they contain actual speech or just background noise, fillers, or non-speech sounds.
+
+### Key Features:
+
+1. **VAD is always used** for initial speech detection (already implemented in existing listen tools)
+2. **When `use_sound_classifier=True`**, transcripts are classified by an LLM using zrb's small model configuration system
+3. **Fail-safe default**: If the classifier fails, it assumes the sound should be handled as speech
+4. **Structured output**: Uses structured output types similar to `../zrb/src/zrb/task/llm/history_processor.py` pattern
+5. **Configurable**: Supports custom models, prompts, retries, and rate limiting
+
+### Usage Examples:
+
+```python
+# Basic usage with sound classification
+listen_tool = create_listen_tool(
+    mode="vosk",
+    use_sound_classifier=True,
+    tool_name="smart_listen"
+)
+
+# With custom classification settings
+listen_tool = create_listen_tool(
+    mode="google",
+    use_sound_classifier=True,
+    classification_model="custom-model",
+    classification_model_settings={"temperature": 0.1},
+    classification_system_prompt="Classify speech vs noise",
+    classification_retries=3,
+    fail_safe=False,  # Raise exception on classification failure
+    rate_limitter=my_rate_limiter,
+    tool_name="custom_classifier_listen"
+)
+
+# Backward compatibility - old code still works
+listen_tool = create_listen_tool(
+    mode="termux",
+    # No use_sound_classifier parameter
+    tool_name="basic_listen"
+)
+```
+
+### How It Works:
+
+1. The underlying listen tool (Vosk, Google, OpenAI, or Termux) captures audio and transcribes it
+2. VAD (Voice Activity Detection) filters out silent periods
+3. If `use_sound_classifier=True`, the transcript is sent to an LLM classifier
+4. The classifier returns a structured response indicating:
+   - `is_speech`: Boolean indicating if it's actual speech
+   - `confidence`: Confidence score (0.0 to 1.0)
+   - `category`: Optional category (e.g., "speech", "noise", "filler")
+5. Based on the classification:
+   - If `is_speech=True`: Returns the transcript
+   - If `is_speech=False`: Returns empty string (ignores non-speech)
+
+### Benefits:
+
+- **Reduces false positives**: Filters out background noise, coughs, throat clearing, etc.
+- **Improves accuracy**: Only processes actual speech content
+- **Configurable**: Can be tuned for different environments and use cases
+- **Backward compatible**: Existing code continues to work without changes
 ```
 
 
