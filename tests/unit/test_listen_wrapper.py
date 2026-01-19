@@ -3,7 +3,6 @@
 Unit tests for listen wrapper module.
 """
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -47,22 +46,14 @@ class TestListenWrapper:
             # Should return a function
             assert callable(wrapped_tool)
 
-            # Create mock context
-            mock_ctx = MagicMock()
-            mock_ctx.print = MagicMock()
-            mock_ctx.log_info = MagicMock()
-            mock_ctx.log_warning = MagicMock()
-            mock_ctx.log_error = MagicMock()
-            mock_ctx.is_tty = False
-
             # Call wrapped tool
-            result = await wrapped_tool(mock_ctx)
+            result = await wrapped_tool()
 
             # Should return the transcript
             assert result == "Mock transcript"
 
             # Verify calls
-            mock_listen_tool.assert_called_once_with(mock_ctx)
+            mock_listen_tool.assert_called_once_with()
             mock_create_classifier.assert_called_once()
             mock_classifier.assert_called_once_with("Mock transcript")
 
@@ -94,22 +85,11 @@ class TestListenWrapper:
                 fail_safe=True,
             )
 
-            # Create mock context
-            mock_ctx = MagicMock()
-            mock_ctx.print = MagicMock()
-            mock_ctx.log_info = MagicMock()
-            mock_ctx.log_warning = MagicMock()
-            mock_ctx.log_error = MagicMock()
-            mock_ctx.is_tty = False
-
             # Call wrapped tool
-            result = await wrapped_tool(mock_ctx)
+            result = await wrapped_tool()
 
             # Should return empty string when not speech
             assert result == ""
-
-            # Should log info
-            mock_ctx.log_info.assert_called()
 
     @pytest.mark.asyncio
     async def test_create_listen_tool_with_classification_empty_transcript(self):
@@ -139,16 +119,8 @@ class TestListenWrapper:
                 fail_safe=True,
             )
 
-            # Create mock context
-            mock_ctx = MagicMock()
-            mock_ctx.print = MagicMock()
-            mock_ctx.log_info = MagicMock()
-            mock_ctx.log_warning = MagicMock()
-            mock_ctx.log_error = MagicMock()
-            mock_ctx.is_tty = False
-
             # Call wrapped tool
-            result = await wrapped_tool(mock_ctx)
+            result = await wrapped_tool()
 
             # Should return empty string (not speech)
             assert result == ""
@@ -184,16 +156,8 @@ class TestListenWrapper:
                 fail_safe=True,
             )
 
-            # Create mock context
-            mock_ctx = MagicMock()
-            mock_ctx.print = MagicMock()
-            mock_ctx.log_info = MagicMock()
-            mock_ctx.log_warning = MagicMock()
-            mock_ctx.log_error = MagicMock()
-            mock_ctx.is_tty = False
-
             # Call wrapped tool
-            result = await wrapped_tool(mock_ctx)
+            result = await wrapped_tool()
 
             # Should return transcript (fail-safe default is speech)
             assert result == "Mock transcript"
@@ -231,16 +195,8 @@ class TestListenWrapper:
                 fail_safe=False,
             )
 
-            # Create mock context
-            mock_ctx = MagicMock()
-            mock_ctx.print = MagicMock()
-            mock_ctx.log_info = MagicMock()
-            mock_ctx.log_warning = MagicMock()
-            mock_ctx.log_error = MagicMock()
-            mock_ctx.is_tty = False
-
             # Call wrapped tool
-            result = await wrapped_tool(mock_ctx)
+            result = await wrapped_tool()
 
             # Should return empty string (not speech)
             assert result == ""

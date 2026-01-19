@@ -5,7 +5,6 @@ import wave
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from typing_extensions import TypedDict
-from zrb import AnyContext
 
 from zrb_extras.llm.tool.google.client import get_client
 from zrb_extras.llm.tool.google.default_config import TTS_MODEL, VOICE_NAME
@@ -30,14 +29,13 @@ def create_speak_tool(
     tool_name: str | None = None,
     tool_description: str | None = None,
 ) -> Callable[
-    [AnyContext, str, str | list[MultiSpeakerVoice] | None], Coroutine[Any, Any, bool]
+    [str, str | list[MultiSpeakerVoice] | None], Coroutine[Any, Any, bool]
 ]:
     tts_model = tts_model or TTS_MODEL
     voice_name = voice_name or VOICE_NAME
     sample_rate_out = sample_rate_out if sample_rate_out is not None else 24000
 
     async def speak(
-        ctx: AnyContext,
         text: str,
         voice_name: str | list[MultiSpeakerVoice] | None = voice_name,
     ) -> bool:
@@ -92,7 +90,6 @@ def create_speak_tool(
           True if speech was successfully generated and played, False otherwise.
         """
         return await _synthesize_and_play(
-            ctx,
             client=get_client(client, api_key),
             text=text,
             tts_model=tts_model,
@@ -109,7 +106,6 @@ def create_speak_tool(
 
 
 async def _synthesize_and_play(
-    ctx: AnyContext,
     client: "genai.Client",
     text: str,
     tts_model: str,
@@ -128,7 +124,7 @@ async def _synthesize_and_play(
 
     if not text:
         text = "I have nothing to say."
-    ctx.print("Requesting TTS...", plain=True)
+    print("Requesting TTS...")
     resp = client.models.generate_content(
         model=tts_model,
         contents=text,
@@ -163,7 +159,7 @@ async def _synthesize_and_play(
         ),
     )
     # Extract audio blob
-    ctx.print("Extracting audio...", plain=True)
+    print("Extracting audio...")
     try:
         part = resp.candidates[0].content.parts[0].inline_data
         b64 = part.data
@@ -176,7 +172,7 @@ async def _synthesize_and_play(
             b64 = b64[comma + 1 :]
     raw = base64.b64decode(b64) if isinstance(b64, str) else bytes(b64)
     # Prepare an in-memory WAV buffer
-    ctx.print("Preparing audio buffer...", plain=True)
+    print("Preparing audio buffer...")
     buf = io.BytesIO()
     if mime and "wav" in mime.lower():
         # Already WAV or RIFF container
@@ -192,7 +188,7 @@ async def _synthesize_and_play(
         buf.seek(0)
     # Now decode and play directly from buffer
     data, sr = sf.read(buf)
-    ctx.print("Playing audio...", plain=True)
+    print("Playing audio...")
     sd.play(data, sr)
     await asyncio.to_thread(sd.wait)
     return True

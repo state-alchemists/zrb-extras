@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-from zrb import AnyContext
-
 from zrb_extras.llm.tool.sound_classifier import (
     SoundClassification,
     create_sound_classifier,
@@ -10,11 +8,11 @@ from zrb_extras.llm.tool.sound_classifier import (
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
     from pydantic_ai.settings import ModelSettings
-    from zrb.config.llm_rate_limitter import LLMRateLimitter
+    from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
 
 
 def create_listen_tool_with_classification(
-    base_listen_tool: Callable[[AnyContext], Coroutine[Any, Any, str]],
+    base_listen_tool: Callable[[], Coroutine[Any, Any, str]],
     use_sound_classifier: bool = False,
     # Classification parameters
     classification_model: "Model | str | None" = None,
@@ -24,7 +22,7 @@ def create_listen_tool_with_classification(
     rate_limitter: "LLMRateLimitter | None" = None,
     # Behavior parameters
     fail_safe: bool = True,
-) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
+) -> Callable[[], Coroutine[Any, Any, str]]:
     """
     Wraps a listen tool with optional sound classification.
 
@@ -42,20 +40,19 @@ def create_listen_tool_with_classification(
         A wrapped listen tool that optionally classifies transcripts.
     """
 
-    async def listen_with_classification(ctx: AnyContext) -> str:
+    async def listen_with_classification() -> str:
         """
         Listens for speech, transcribes it, and optionally classifies the result.
 
         Note: VAD is always used by the underlying listen tool for initial detection.
         """
         # Step 1: Use the base listen tool (which always uses VAD)
-        transcript = await base_listen_tool(ctx)
+        transcript = await base_listen_tool()
         # Step 2: If classification is disabled, return transcript directly
         if not use_sound_classifier:
             return transcript
         # Step 3: Create classifier and classify transcript
         classify_transcript = create_sound_classifier(
-            ctx=ctx,
             rate_limitter=rate_limitter,
             classification_model=classification_model,
             classification_model_settings=classification_model_settings,

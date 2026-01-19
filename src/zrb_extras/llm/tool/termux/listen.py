@@ -2,8 +2,6 @@ import shutil
 import subprocess
 from typing import Any, Callable, Coroutine
 
-from zrb import AnyContext
-
 from zrb_extras.llm.tool.vad import record_until_silence
 
 from .default_config import (
@@ -22,7 +20,7 @@ def create_listen_tool(
     text_processor: Callable[[str], str] | None = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
-) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
+) -> Callable[[], Coroutine[Any, Any, str]]:
     """
     Factory to create a listen tool using Termux API.
     Requires 'termux-speech-to-text' to be installed and available in path.
@@ -34,7 +32,7 @@ def create_listen_tool(
     )
     max_silence = max_silence if max_silence is not None else MAX_SILENCE
 
-    async def listen(ctx: AnyContext) -> str:
+    async def listen() -> str:
         """Listens for and transcribes the user's verbal response using Termux native UI.
 
         Returns:
@@ -48,9 +46,8 @@ def create_listen_tool(
             # We just use VAD to detect the START of speech.
             # Once speech is detected, we invoke the native Termux STT which has its own recording.
             # This is a bit of a hybrid approach because we can't easily feed our audio to termux-speech-to-text.
-            ctx.print("Monitoring for speech (VAD)...", plain=True)
+            print("Monitoring for speech (VAD)...")
             await record_until_silence(
-                ctx,
                 sample_rate=sample_rate,
                 channels=channels,
                 silence_threshold=silence_threshold,
@@ -65,20 +62,20 @@ def create_listen_tool(
                 "termux-speech-to-text not found. Is Termux API installed?"
             )
 
-        ctx.print("Listening (Termux UI)...", plain=True)
+        print("Listening (Termux UI)...")
         # Run blocking subprocess as it invokes a UI
         try:
             result = subprocess.run(
                 ["termux-speech-to-text"], capture_output=True, text=True, check=True
             )
             text = result.stdout.strip()
-            ctx.print(f"Heard: {text}", plain=True)
+            print(f"Heard: {text}")
 
             if text_processor:
                 return text_processor(text)
             return text
         except subprocess.CalledProcessError as e:
-            ctx.print(f"Error calling Termux STT: {e}", plain=True)
+            print(f"Error calling Termux STT: {e}")
             return ""
 
     if tool_name is not None:

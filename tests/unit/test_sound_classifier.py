@@ -77,17 +77,8 @@ class TestCreateSoundClassifier:
     @pytest.mark.asyncio
     async def test_create_sound_classifier_basic(self):
         """Test basic sound classifier creation."""
-        # Create mock context
-        mock_ctx = MagicMock()
-        mock_ctx.print = MagicMock()
-        mock_ctx.log_info = MagicMock()
-        mock_ctx.log_warning = MagicMock()
-        mock_ctx.log_error = MagicMock()
-        mock_ctx.is_tty = False
-
         # Create classifier
         classifier = create_sound_classifier(
-            ctx=mock_ctx,
             classification_system_prompt="Classify transcripts",
         )
 
@@ -97,14 +88,6 @@ class TestCreateSoundClassifier:
     @pytest.mark.asyncio
     async def test_create_sound_classifier_with_mock_llm(self):
         """Test sound classifier with mocked LLM response."""
-        # Create mock context
-        mock_ctx = MagicMock()
-        mock_ctx.print = MagicMock()
-        mock_ctx.log_info = MagicMock()
-        mock_ctx.log_warning = MagicMock()
-        mock_ctx.log_error = MagicMock()
-        mock_ctx.is_tty = False
-
         # Mock LLM response
         mock_response = {
             "is_speech": True,
@@ -126,7 +109,6 @@ class TestCreateSoundClassifier:
 
             # Create classifier
             classifier = create_sound_classifier(
-                ctx=mock_ctx,
                 classification_system_prompt="Classify transcripts",
             )
 
@@ -145,17 +127,8 @@ class TestCreateSoundClassifier:
     @pytest.mark.asyncio
     async def test_create_sound_classifier_empty_transcript(self):
         """Test sound classifier with empty transcript."""
-        # Create mock context
-        mock_ctx = MagicMock()
-        mock_ctx.print = MagicMock()
-        mock_ctx.log_info = MagicMock()
-        mock_ctx.log_warning = MagicMock()
-        mock_ctx.log_error = MagicMock()
-        mock_ctx.is_tty = False
-
         # Create classifier
         classifier = create_sound_classifier(
-            ctx=mock_ctx,
             classification_system_prompt="Classify transcripts",
         )
 
@@ -169,14 +142,6 @@ class TestCreateSoundClassifier:
     @pytest.mark.asyncio
     async def test_create_sound_classifier_llm_error(self):
         """Test sound classifier when LLM fails."""
-        # Create mock context
-        mock_ctx = MagicMock()
-        mock_ctx.print = MagicMock()
-        mock_ctx.log_info = MagicMock()
-        mock_ctx.log_warning = MagicMock()
-        mock_ctx.log_error = MagicMock()
-        mock_ctx.is_tty = False
-
         # Mock LLM to raise exception
         with patch(
             "zrb_extras.llm.tool.sound_classifier.run_agent_iteration"
@@ -185,7 +150,6 @@ class TestCreateSoundClassifier:
 
             # Create classifier
             classifier = create_sound_classifier(
-                ctx=mock_ctx,
                 classification_system_prompt="Classify transcripts",
             )
 
@@ -197,9 +161,6 @@ class TestCreateSoundClassifier:
             assert result["confidence"] == 0.5  # From the code
             assert result["category"] == "unknown"
             assert "Classification failed" in result["reason"]
-
-            # Should log warning
-            mock_ctx.log_warning.assert_called()
 
 
 if __name__ == "__main__":

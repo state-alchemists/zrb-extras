@@ -3,12 +3,8 @@ import sys
 import traceback
 from typing import TYPE_CHECKING, Callable, Coroutine
 
-from zrb import AnyContext
-from zrb.config.llm_config import llm_config
-from zrb.config.llm_rate_limitter import (
-    LLMRateLimitter,
-)
-from zrb.config.llm_rate_limitter import llm_rate_limitter as default_llm_rate_limitter
+from zrb import llm_config, llm_limiter as default_llm_rate_limitter
+from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
 from zrb.task.llm.agent_runner import run_agent_iteration
 from zrb.util.cli.style import stylize_faint
 
@@ -47,7 +43,6 @@ def classify_sound(sound_classification: SoundClassification):
 
 
 def create_sound_classifier(
-    ctx: AnyContext,
     rate_limitter: LLMRateLimitter | None = None,
     classification_model: "Model | str | None" = None,
     classification_model_settings: "ModelSettings | None" = None,
@@ -58,7 +53,6 @@ def create_sound_classifier(
     Creates a sound classification function that uses LLM to classify transcripts.
 
     Args:
-        ctx: The task context.
         rate_limitter: Rate limiter for LLM calls.
         classification_model: Model to use for classification.
         classification_model_settings: Settings for the classification model.
@@ -114,9 +108,8 @@ def create_sound_classifier(
             retries=classification_retries,
         )
         try:
-            _print_info(ctx, "🔊 Classifying Sound", 2)
+            print("🔊 Classifying Sound")
             classification_run = await run_agent_iteration(
-                ctx=ctx,
                 agent=classification_agent,
                 user_prompt=classification_message,
                 attachments=[],
@@ -136,18 +129,11 @@ def create_sound_classifier(
                     confidence = result.get("confidence", 0.5)
                     category = result.get("category")
                     reason = result.get("reason")
-                    # Log the final decision using _print_info
                     if is_speech:
-                        _print_info(
-                            ctx,
-                            f"✅ Classified as USER REQUEST (confidence: {confidence:.2f})",
-                            2,
-                        )
+                        print(f"✅ Classified as USER REQUEST (confidence: {confidence:.2f})")
                     else:
-                        _print_info(
-                            ctx,
+                        print(
                             f"❌ Classified as NOT USER REQUEST (category: {category}, confidence: {confidence:.2f})",  # noqa
-                            2,
                         )
                     return SoundClassification(
                         is_speech=is_speech,
@@ -156,10 +142,10 @@ def create_sound_classifier(
                         reason=reason,
                     )
         except BaseException as e:
-            ctx.log_warning(f"Error during sound classification: {e}")
+            print(f"Error during sound classification: {e}")
             traceback.print_exc()
         # Fallback: assume speech should be handled (fail-safe)
-        ctx.log_warning(
+        print(
             "Sound classification failed, assuming speech should be handled"
         )
         return SoundClassification(
@@ -170,8 +156,3 @@ def create_sound_classifier(
         )
 
     return classify_transcript
-
-
-def _print_info(ctx: AnyContext, text: str, log_indent_level: int = 0):
-    log_prefix = (2 * (log_indent_level + 1)) * " "
-    ctx.print(stylize_faint(f"{log_prefix}{text}"), plain=True)

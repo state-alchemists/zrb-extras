@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Literal
 
-from zrb import AnyContext
-
 from zrb_extras.llm.tool.google import (  # noqa
     create_listen_tool as create_google_listen_tool,
 )
@@ -34,7 +32,7 @@ if TYPE_CHECKING:
     from openai import AsyncOpenAI
     from pydantic_ai.models import Model
     from pydantic_ai.settings import ModelSettings
-    from zrb.config.llm_rate_limitter import LLMRateLimitter
+    from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
 
     from zrb_extras.llm.tool.google.speak import (
         MultiSpeakerVoice as GoogleMultiSpeakerVoice,
@@ -76,7 +74,7 @@ def create_listen_tool(
     vosk_model_lang: str | None = None,
     vosk_model_path: str | None = None,
     vosk_model_name: str | None = None,
-) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
+) -> Callable[[], Coroutine[Any, Any, str]]:
     """
     Generic factory to create a listen tool for different backends.
 
@@ -186,7 +184,7 @@ def create_speak_tool(
     pyttsx3_voice_name: str | None = None,
     pyttsx3_rate: int | None = None,
     pyttsx3_volume: float | None = None,
-) -> Callable[[AnyContext, str, Any], Coroutine[Any, Any, bool]]:
+) -> Callable[[str, Any], Coroutine[Any, Any, bool]]:
     """
     Generic factory to create a speak tool for different backends.
     """
