@@ -1,9 +1,7 @@
 from urllib.parse import parse_qs, urlparse
 
-from zrb import AnyContext
 
-
-def fetch_youtube_transcript(ctx: AnyContext, url: str):
+def fetch_youtube_transcript(url: str):
     """
     Get transcript of a Youtube video
     """
@@ -22,20 +20,20 @@ def fetch_youtube_transcript(ctx: AnyContext, url: str):
     video_id = extract_video_id(url)
     if not video_id:
         raise ValueError("Could not extract a video id from the provided string/url")
-    ctx.print(f"VIDEO ID: {video_id}", plain=True)
+    print(f"VIDEO ID: {video_id}")
     try:
         # get_transcript / get_transcripts / fetch — either is fine; common call:
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
         return " ".join([snippet["text"] for snippet in transcript])
     except TranscriptsDisabled:
-        ctx.log_error("Transcripts are disabled for this video.")
+        print("Transcripts are disabled for this video.")
     except NoTranscriptFound:
-        ctx.log_error("No transcript found for this video.")
+        print("No transcript found for this video.")
     except VideoUnavailable:
-        ctx.log_error("Video unavailable.")
+        print("Video unavailable.")
     except Exception as e:
         # RequestBlocked / IpBlocked etc can happen in cloud environments
-        ctx.log_error("Error fetching transcript:", e)
+        print("Error fetching transcript:", e)
     return None
 
 

@@ -54,14 +54,6 @@ class TestFactoryIntegration:
             mock_wrapped_tool.return_value = "Classified transcript"
             mock_wrapper.return_value = mock_wrapped_tool
 
-            # Create mock context
-            mock_ctx = MagicMock()
-            mock_ctx.print = MagicMock()
-            mock_ctx.log_info = MagicMock()
-            mock_ctx.log_warning = MagicMock()
-            mock_ctx.log_error = MagicMock()
-            mock_ctx.is_tty = False
-
             # Create listen tool WITH classification
             tool = create_listen_tool(
                 mode="vosk",
@@ -87,7 +79,7 @@ class TestFactoryIntegration:
             )
 
             # Test the tool
-            result = await tool(mock_ctx)
+            result = await tool()
             assert result == "Classified transcript"
 
     @pytest.mark.asyncio
@@ -122,18 +114,11 @@ class TestFactoryIntegration:
                 fail_safe=False,
                 tool_name="test_custom",
             )
-
-            # Test that the tool works
-            mock_ctx = MagicMock()
-            mock_ctx.log_info = MagicMock()
-            mock_ctx.log_warning = MagicMock()
-            mock_ctx.log_error = MagicMock()
-
             # Mock the base tool to return a transcript
             mock_basic_tool.return_value = "Test transcript"
 
             # Call the tool
-            result = await tool(mock_ctx)
+            result = await tool()
 
             # Should return the transcript (since classifier says it's speech)
             assert result == "Test transcript"
@@ -208,14 +193,8 @@ class TestFactoryIntegration:
                 # Should call the correct factory
                 mock_factory.assert_called_once()
 
-                # Test that the tool works
-                mock_ctx = MagicMock()
-                mock_ctx.log_info = MagicMock()
-                mock_ctx.log_warning = MagicMock()
-                mock_ctx.log_error = MagicMock()
-
                 # Call the tool
-                result = await tool(mock_ctx)
+                result = await tool()
 
                 # Should return the transcript (since classifier says it's speech)
                 assert result == f"Test transcript from {mode}"

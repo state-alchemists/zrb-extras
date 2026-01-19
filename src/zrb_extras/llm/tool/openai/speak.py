@@ -2,8 +2,6 @@ import asyncio
 import io
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-from zrb import AnyContext
-
 from zrb_extras.llm.tool.openai.client import get_client
 from zrb_extras.llm.tool.openai.default_config import TTS_MODEL, VOICE_NAME
 
@@ -20,13 +18,12 @@ def create_speak_tool(
     sample_rate_out: int | None = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
-) -> Callable[[AnyContext, str, str | None], Coroutine[Any, Any, bool]]:
+) -> Callable[[str, str | None, str | None], Coroutine[Any, Any, bool]]:
     tts_model = tts_model or TTS_MODEL
     voice_name = voice_name or VOICE_NAME
     sample_rate_out = sample_rate_out if sample_rate_out is not None else 24000
 
     async def speak(
-        ctx: AnyContext,
         text: str,
         instruction: str | None = None,
         voice_name: str | None = voice_name,
@@ -57,7 +54,6 @@ def create_speak_tool(
           True if speech was successfully generated and played, False otherwise.
         """
         return await _synthesize_and_play(
-            ctx,
             client=get_client(client, api_key, base_url),
             text=text,
             instruction=instruction,
@@ -74,7 +70,6 @@ def create_speak_tool(
 
 
 async def _synthesize_and_play(
-    ctx: AnyContext,
     client: "AsyncOpenAI",
     text: str,
     instruction: str | None,
@@ -96,7 +91,7 @@ async def _synthesize_and_play(
     # Resolve voice name
     selected_voice = voice_name or VOICE_NAME
 
-    ctx.print("Requesting TTS...", plain=True)
+    print("Requesting TTS...")
 
     # OpenAI TTS request
     response = await client.audio.speech.create(
@@ -108,13 +103,13 @@ async def _synthesize_and_play(
     )
 
     # Extract audio content
-    ctx.print("Extracting audio...", plain=True)
+    print("Extracting audio...")
     audio_content = b""
     for chunk in response.iter_bytes():
         audio_content += chunk
 
     # Prepare an in-memory WAV buffer
-    ctx.print("Preparing audio buffer...", plain=True)
+    print("Preparing audio buffer...")
     buf = io.BytesIO(audio_content)
 
     # Now decode and play directly from buffer
@@ -124,7 +119,7 @@ async def _synthesize_and_play(
     # Usually soundfile/sounddevice handles it, but let's check if we need to force it.
     # The default response format 'wav' from OpenAI should be playable.
 
-    ctx.print("Playing audio...", plain=True)
+    print("Playing audio...")
     sd.play(data, sr)
     await asyncio.to_thread(sd.wait)
     return True

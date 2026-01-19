@@ -1,8 +1,6 @@
 import io
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-from zrb import AnyContext
-
 from zrb_extras.llm.tool.openai.client import get_client
 from zrb_extras.llm.tool.openai.default_config import (
     CHANNELS,
@@ -29,7 +27,7 @@ def create_listen_tool(
     text_processor: None | Callable[[str], str] = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
-) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
+) -> Callable[[], Coroutine[Any, Any, str]]:
     """
     Factory to create a configurable listen tool using OpenAI.
     """
@@ -41,7 +39,7 @@ def create_listen_tool(
     )
     max_silence = max_silence if max_silence is not None else MAX_SILENCE
 
-    async def listen(ctx: AnyContext) -> str:
+    async def listen() -> str:
         """Listens for and transcribes the user's verbal response.
 
         Use this tool to capture speech from the user.
@@ -67,7 +65,6 @@ def create_listen_tool(
 
         # Record audio
         audio_data = await record_until_silence(
-            ctx,
             sample_rate=sample_rate,
             channels=channels,
             silence_threshold=silence_threshold,
@@ -81,7 +78,6 @@ def create_listen_tool(
 
         # Transcribe
         transcribed_text = await _transcribe_audio_bytes(
-            ctx,
             client=get_client(client, api_key, base_url),
             audio_bytes=audio_bytes,
             stt_model=stt_model,
@@ -98,13 +94,12 @@ def create_listen_tool(
 
 
 async def _transcribe_audio_bytes(
-    ctx: AnyContext,
     client: "AsyncOpenAI",
     audio_bytes: bytes,
     stt_model: str,
 ) -> str:
     # Ask model to transcribe
-    ctx.print("Requesting transcription...", plain=True)
+    print("Requesting transcription...")
 
     # OpenAI requires a filename for the file-like object
     file_obj = io.BytesIO(audio_bytes)
@@ -116,5 +111,5 @@ async def _transcribe_audio_bytes(
     )
 
     text = (resp.text or "").strip()
-    ctx.print("Transcription result:", repr(text), plain=True)
+    print("Transcription result:", repr(text))
     return text

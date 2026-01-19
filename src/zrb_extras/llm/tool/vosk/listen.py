@@ -2,8 +2,6 @@ import asyncio
 import json
 from typing import Any, Callable, Coroutine
 
-from zrb import AnyContext
-
 from zrb_extras.llm.tool.vad import record_until_silence
 
 from .default_config import MODEL_LANG, SAMPLE_RATE
@@ -20,7 +18,7 @@ def create_listen_tool(
     text_processor: Callable[[str], str] | None = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
-) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
+) -> Callable[[], Coroutine[Any, Any, str]]:
     """
     Factory to create a listen tool using Vosk (offline STT).
     """
@@ -50,7 +48,7 @@ def create_listen_tool(
             )
         return _model
 
-    async def listen(ctx: AnyContext) -> str:
+    async def listen() -> str:
         """Listens for and transcribes speech using Vosk.
 
         The tool records audio from the microphone, automatically detects when the user
@@ -79,7 +77,6 @@ def create_listen_tool(
 
         # Record audio
         audio_data = await record_until_silence(
-            ctx,
             sample_rate=sample_rate,
             channels=channels,
             silence_threshold=silence_threshold,
@@ -89,7 +86,7 @@ def create_listen_tool(
         # Transcribe
         data_bytes = audio_data.tobytes()
 
-        ctx.print("Transcribing...", plain=True)
+        print("Transcribing...")
         result_text = ""
         if rec.AcceptWaveform(data_bytes):
             res = json.loads(rec.Result())
@@ -98,7 +95,7 @@ def create_listen_tool(
             res = json.loads(rec.FinalResult())
             result_text = res.get("text", "")
 
-        ctx.print(f"Vosk Heard: {result_text}", plain=True)
+        print(f"Vosk Heard: {result_text}")
 
         if text_processor:
             return text_processor(result_text)

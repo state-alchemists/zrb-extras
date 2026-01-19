@@ -1,7 +1,7 @@
 import os
 
 from zrb import llm_config
-from zrb.builtin import llm_ask, llm_chat_trigger
+from zrb.builtin import llm_chat
 
 from zrb_extras.llm.tool import (
     create_listen_tool,
@@ -48,9 +48,5 @@ speak = create_speak_tool(
     sample_rate_out=24000,
 )
 
-llm_chat_trigger.add_trigger(listen)
-llm_ask.add_tool(speak, fetch_youtube_transcript)
-
-# Optional: allow LLM to speak or listen without asking for user approval
-if not llm_config.default_yolo_mode:
-    llm_config.set_default_yolo_mode(["speak"])
+# llm_chat.add_trigger(listen)
+llm_chat.add_tool(speak, fetch_youtube_transcript)

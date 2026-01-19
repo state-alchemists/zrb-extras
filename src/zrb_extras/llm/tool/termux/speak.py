@@ -2,8 +2,6 @@ import shutil
 import subprocess
 from typing import Any, Callable, Coroutine
 
-from zrb import AnyContext
-
 from .default_config import (
     TTS_ENGINE,
     TTS_LANGUAGE,
@@ -25,7 +23,7 @@ def create_speak_tool(
     stream: str | None = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
-) -> Callable[[AnyContext, str, str | None], Coroutine[Any, Any, bool]]:
+) -> Callable[[str, str | None], Coroutine[Any, Any, bool]]:
     """
     Factory to create a speak tool using Termux API.
     """
@@ -38,13 +36,13 @@ def create_speak_tool(
     stream = stream or TTS_STREAM
 
     async def speak(
-        ctx: AnyContext, text: str, voice_name: str | None = voice_name
+        text: str, voice_name: str | None = voice_name
     ) -> bool:
         """Converts text to speech using Termux native TTS."""
         if not shutil.which("termux-tts-speak"):
             raise RuntimeError("termux-tts-speak not found. Is Termux API installed?")
 
-        ctx.print(f"Speaking: {text}", plain=True)
+        print(f"Speaking: {text}")
 
         cmd = ["termux-tts-speak"]
         if language:
@@ -73,7 +71,7 @@ def create_speak_tool(
             subprocess.run(cmd, check=True)
             return True
         except subprocess.CalledProcessError as e:
-            ctx.print(f"Error calling Termux TTS: {e}", plain=True)
+            print(f"Error calling Termux TTS: {e}")
             return False
 
     if tool_name is not None:

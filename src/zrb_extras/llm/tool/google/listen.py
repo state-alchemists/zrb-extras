@@ -2,7 +2,6 @@ import io
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from typing_extensions import TypedDict
-from zrb import AnyContext
 
 from zrb_extras.llm.tool.google.client import get_client
 from zrb_extras.llm.tool.google.default_config import (
@@ -36,7 +35,7 @@ def create_listen_tool(
     safety_settings: "list[types.SafetySetting] | None" = None,
     tool_name: str | None = None,
     tool_description: str | None = None,
-) -> Callable[[AnyContext], Coroutine[Any, Any, str]]:
+) -> Callable[[], Coroutine[Any, Any, str]]:
     """
     Factory to create a configurable listen tool.
     """
@@ -48,7 +47,7 @@ def create_listen_tool(
     )
     max_silence = max_silence if max_silence is not None else MAX_SILENCE
 
-    async def listen(ctx: AnyContext) -> str:
+    async def listen() -> str:
         """Listens for and transcribes the user's verbal response.
 
         Use this tool to capture speech from the user.
@@ -74,7 +73,6 @@ def create_listen_tool(
 
         # Record audio
         audio_data = await record_until_silence(
-            ctx,
             sample_rate=sample_rate,
             channels=channels,
             silence_threshold=silence_threshold,
@@ -88,7 +86,6 @@ def create_listen_tool(
 
         # Transcribe
         transcribed_text = _transcribe_audio_bytes(
-            ctx,
             client=get_client(client, api_key),
             audio_bytes=audio_bytes,
             stt_model=stt_model,
@@ -106,7 +103,6 @@ def create_listen_tool(
 
 
 def _transcribe_audio_bytes(
-    ctx: AnyContext,
     client: "genai.Client",
     audio_bytes: bytes,
     stt_model: str,
@@ -121,7 +117,7 @@ def _transcribe_audio_bytes(
         )
 
     # Ask model to transcribe (inline audio + instruction style)
-    ctx.print("Requesting transcription...", plain=True)
+    print("Requesting transcription...")
     resp = client.models.generate_content(
         model=stt_model,
         contents=[
@@ -132,5 +128,5 @@ def _transcribe_audio_bytes(
     )
     # response.text is the canonical convenience property for text outputs
     text = (resp.text or "").strip()
-    ctx.print("Transcription result:", repr(text), plain=True)
+    print("Transcription result:", repr(text))
     return text

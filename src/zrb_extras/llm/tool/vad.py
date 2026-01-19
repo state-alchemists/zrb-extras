@@ -4,8 +4,6 @@ import time
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, AsyncGenerator, Deque, List, Optional
 
-from zrb import AnyContext
-
 if TYPE_CHECKING:
     import numpy as np
 
@@ -67,7 +65,6 @@ class VADState:
 
 
 async def record_until_silence(
-    ctx: AnyContext,
     sample_rate: int,
     channels: int,
     silence_threshold: float,
@@ -84,7 +81,7 @@ async def record_until_silence(
             "numpy is not installed. Please install zrb-extras[all] or specific extras."
         )
 
-    async with _audio_stream(ctx, sample_rate, channels) as queue:
+    async with _audio_stream(sample_rate, channels) as queue:
         # 1. Calibration Phase
         calibration_frames = await _calibrate_noise(queue)
 
@@ -98,16 +95,14 @@ async def record_until_silence(
         # Initialize VAD State
         vad_state = VADState(initial_noise_level, silence_threshold)
 
-        ctx.print(
+        print(
             f"Noise level: {vad_state.noise_level:.6f}, "
             f"Threshold: {vad_state.threshold:.6f}",
-            plain=True,
         )
-        ctx.print("Waiting for speech...", plain=True)
+        print("Waiting for speech...")
 
         # 2. Recording Loop
         return await _record_loop(
-            ctx,
             queue,
             vad_state,
             sample_rate,
@@ -118,7 +113,7 @@ async def record_until_silence(
 
 @asynccontextmanager
 async def _audio_stream(
-    ctx: AnyContext, sample_rate: int, channels: int
+    sample_rate: int, channels: int
 ) -> AsyncGenerator[asyncio.Queue, None]:
     """
     Context manager that yields an asyncio.Queue receiving audio blocks from sounddevice.
@@ -139,14 +134,14 @@ async def _audio_stream(
         # Use loop.call_soon_threadsafe to interact with asyncio queue from non-async thread
         loop.call_soon_threadsafe(q.put_nowait, indata.copy())
 
-    ctx.print("Initializing microphone...", plain=True)
+    print("Initializing microphone...")
     try:
         with sd.InputStream(
             samplerate=sample_rate, channels=channels, callback=callback
         ):
             yield q
     except Exception as e:
-        ctx.print(f"Microphone initialization failed: {e}", plain=True)
+        print(f"Microphone initialization failed: {e}")
         raise
 
 
@@ -171,7 +166,6 @@ async def _calibrate_noise(queue: asyncio.Queue) -> List["np.ndarray"]:
 
 
 async def _record_loop(
-    ctx: AnyContext,
     queue: asyncio.Queue,
     vad_state: VADState,
     sample_rate: int,
@@ -201,7 +195,7 @@ async def _record_loop(
                 if vad_state.speech_started
                 else "No speech detected."
             )
-            ctx.print(msg, plain=True)
+            print(msg)
             break
 
         energy = np.linalg.norm(block) / len(block)
@@ -212,7 +206,7 @@ async def _record_loop(
             vad_state.update_background_noise(energy)
 
             if vad_state.is_speech(energy):
-                ctx.print("Speech detected!", plain=True)
+                print("Speech detected!")
                 vad_state.speech_started = True
                 rec_data.extend(pre_buffer)
         else:
@@ -220,7 +214,7 @@ async def _record_loop(
             rec_data.append(block)
 
             if vad_state.is_silence_timeout(energy, max_silence):
-                ctx.print("Silence detected.", plain=True)
+                print("Silence detected.")
                 break
 
     if not rec_data:
