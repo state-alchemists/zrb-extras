@@ -82,10 +82,7 @@ llm_ask.add_tool(
         fail_safe=True,  # Default to handling as speech if classification fails
     )
 )
-
-# Optional: allow LLM to speak or listen without asking for user approval
-if not llm_config.default_yolo_mode:
-    llm_config.set_default_yolo_mode(["speak", "listen"])
+```
 
 
 ## Sound Classification Feature

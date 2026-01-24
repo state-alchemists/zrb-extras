@@ -1,5 +1,6 @@
 import os
 
+from zrb import to_infinite_stream
 from zrb.builtin import llm_chat
 
 from zrb_extras.llm.tool import (
@@ -47,5 +48,5 @@ speak = create_speak_tool(
     sample_rate_out=24000,
 )
 
-llm_chat.add_trigger(listen)
+llm_chat.add_trigger(to_infinite_stream(listen))
 llm_chat.add_tool(speak, fetch_youtube_transcript)
