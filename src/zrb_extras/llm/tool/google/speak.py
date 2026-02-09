@@ -171,24 +171,11 @@ async def _synthesize_and_play(
         if comma != -1:
             b64 = b64[comma + 1 :]
     raw = base64.b64decode(b64) if isinstance(b64, str) else bytes(b64)
-    # Prepare an in-memory WAV buffer
-    print("Preparing audio buffer...")
-    buf = io.BytesIO()
-    if mime and "wav" in mime.lower():
-        # Already WAV or RIFF container
-        buf.write(raw)
-        buf.seek(0)
-    else:
-        # Assume raw PCM16 mono at 24kHz and wrap it
-        with wave.open(buf, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)  # 16-bit
-            wf.setframerate(sample_rate_out)
-            wf.writeframes(raw)
-        buf.seek(0)
-    # Now decode and play directly from buffer
-    data, sr = sf.read(buf)
+    # Play audio using the shared player
+    from zrb_extras.llm.tool.audio_player import play_audio
     print("Playing audio...")
-    sd.play(data, sr)
-    await asyncio.to_thread(sd.wait)
+    await play_audio(
+        data=raw,
+        sample_rate=sample_rate_out if not (mime and "wav" in mime.lower()) else None
+    )
     return True

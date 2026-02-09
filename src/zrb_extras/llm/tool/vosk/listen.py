@@ -26,7 +26,7 @@ def create_listen_tool(
     sample_rate = sample_rate if sample_rate is not None else SAMPLE_RATE
     channels = channels if channels is not None else 1
     silence_threshold = silence_threshold if silence_threshold is not None else 0.01
-    max_silence = max_silence if max_silence is not None else 1.5
+    max_silence = max_silence if max_silence is not None else 1.0
 
     # Lazy load the model to avoid overhead on every call
     _model = None

@@ -17,6 +17,27 @@ def create_speak_tool(
         text: str, voice_name: str | None = voice_name
     ) -> bool:
         """Converts text to speech using pyttsx3."""
+        import sys
+        if sys.platform == "darwin":
+            print(f"Speaking (say): {text}")
+            cmd = ["say", text]
+            if voice_name:
+                cmd.extend(["-v", voice_name])
+            if rate:
+                # pyttsx3 rate 200 is roughly normal.
+                # say rate 175 is roughly normal.
+                # mapping: say_rate = (rate / 200) * 175
+                say_rate = int((rate / 200) * 175)
+                cmd.extend(["-r", str(say_rate)])
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL
+            )
+            await process.wait()
+            return True
+
         # Capture closure variables to avoid confusion with local args
         factory_rate = rate
         factory_volume = volume

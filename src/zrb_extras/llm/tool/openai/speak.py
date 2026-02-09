@@ -99,27 +99,16 @@ async def _synthesize_and_play(
         voice=selected_voice,
         input=text,
         instructions=omit if instruction is None else instruction,
-        response_format="wav",  # Get WAV directly
+        response_format="pcm",  # Use PCM for streaming
     )
 
-    # Extract audio content
-    print("Extracting audio...")
-    audio_content = b""
-    for chunk in response.iter_bytes():
-        audio_content += chunk
+    # Play audio using the shared player
+    from zrb_extras.llm.tool.audio_player import play_audio_stream
 
-    # Prepare an in-memory WAV buffer
-    print("Preparing audio buffer...")
-    buf = io.BytesIO(audio_content)
-
-    # Now decode and play directly from buffer
-    data, sr = sf.read(buf)
-
-    # If sample rate needs adjustment or verify?
-    # Usually soundfile/sounddevice handles it, but let's check if we need to force it.
-    # The default response format 'wav' from OpenAI should be playable.
-
-    print("Playing audio...")
-    sd.play(data, sr)
-    await asyncio.to_thread(sd.wait)
+    print("Playing audio (streaming)...")
+    await play_audio_stream(
+        response.aiter_bytes(),
+        sample_rate=24000,
+        channels=1
+    )
     return True
