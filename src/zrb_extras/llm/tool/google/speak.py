@@ -124,39 +124,83 @@ async def _synthesize_and_play(
 
     if not text:
         text = "I have nothing to say."
+    
     print("Requesting TTS...")
+    
+    # Check if text appears ambiguous (could be interpreted as a command)
+    # We'll prepend "Say:" if the text doesn't already have clear speech instructions
+    import re
+    
+    # Patterns that indicate the text already has speech instructions
+    instruction_patterns = [
+        r'^say\s+',  # "say something"
+        r'^speak\s+',  # "speak something"
+        r'^read\s+',  # "read something"
+        r'^in\s+a\s+',  # "in a cheerful voice"
+        r'^with\s+',  # "with excitement"
+        r'^as\s+a\s+',  # "as a narrator"
+        r':\s*["\']',  # colon followed by quote
+        r'^"',  # starts with quote
+        r"^'",  # starts with single quote
+    ]
+    
+    has_instruction = any(re.search(pattern, text.lower()) for pattern in instruction_patterns)
+    
+    # Also check if text ends with punctuation that suggests it's complete speech
+    is_complete_speech = text.endswith(('.', '!', '?', '."', '!"', '?"', ".'", "!'", "?'"))
+    
+    # If text doesn't have clear instructions and doesn't look like complete speech,
+    # prepend "Say:" to make it clear this is text to be spoken
+    if not has_instruction and not is_complete_speech:
+        # Check if text contains words that might make it ambiguous
+        ambiguous_words = ['test', 'check', 'verify', 'functionality', 'tts', 'text to speech', 'speech']
+        has_ambiguous_words = any(word in text.lower() for word in ambiguous_words)
+        
+        if has_ambiguous_words or len(text.split()) < 4:  # Short texts are more likely to be ambiguous
+            text = f"Say: {text}"
+    
+    # Debug: print what we're sending
+    print(f"TTS request text: {repr(text)}")
+    
+    # Build the config
+    config_kwargs = {
+        "response_modalities": ["AUDIO"],
+    }
+    
+    # Add speech config
+    if isinstance(voice_name, list):
+        config_kwargs["speech_config"] = types.SpeechConfig(
+            multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
+                speaker_voice_configs=[
+                    types.SpeakerVoiceConfig(
+                        speaker=config.get("speaker", f"Speaker {idx + 1}"),
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=config.get("voice", VOICE_NAME)
+                            )
+                        ),
+                    )
+                    for idx, config in enumerate(voice_name)
+                ]
+            )
+        )
+    else:
+        config_kwargs["speech_config"] = types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                    voice_name=voice_name or VOICE_NAME
+                )
+            )
+        )
+    
+    # Add safety settings if provided
+    if safety_settings:
+        config_kwargs["safety_settings"] = safety_settings
+    
     resp = client.models.generate_content(
         model=tts_model,
         contents=text,
-        config=types.GenerateContentConfig(
-            response_modalities=["AUDIO"],
-            safety_settings=safety_settings,
-            speech_config=(
-                types.SpeechConfig(
-                    multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
-                        speaker_voice_configs=[
-                            types.SpeakerVoiceConfig(
-                                speaker=config.get("speaker", f"Speaker {idx + 1}"),
-                                voice_config=types.VoiceConfig(
-                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                        voice_name=config.get("voice", VOICE_NAME)
-                                    )
-                                ),
-                            )
-                            for idx, config in enumerate(voice_name)
-                        ]
-                    )
-                )
-                if isinstance(voice_name, list)
-                else types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name=voice_name or VOICE_NAME
-                        )
-                    )
-                )
-            ),
-        ),
+        config=types.GenerateContentConfig(**config_kwargs),
     )
     # Extract audio blob
     print("Extracting audio...")

@@ -139,6 +139,11 @@ async def play_audio_stream(
         )
         
         with stream:
+            # Handle the case where audio_generator might be a coroutine
+            import inspect
+            if inspect.isawaitable(audio_generator):
+                audio_generator = await audio_generator
+            
             async for chunk in audio_generator:
                 if not chunk:
                     continue
@@ -177,6 +182,10 @@ async def play_audio_stream(
 async def _fallback_play_collected(audio_generator, sample_rate, channels):
     """Collects all audio and plays it using the reliable non-streaming method."""
     content = b""
+    # Handle the case where audio_generator might be a coroutine
+    import inspect
+    if inspect.isawaitable(audio_generator):
+        audio_generator = await audio_generator
     async for chunk in audio_generator:
         content += chunk
     await play_audio(content, sample_rate, channels)

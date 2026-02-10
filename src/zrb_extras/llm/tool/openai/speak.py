@@ -106,8 +106,10 @@ async def _synthesize_and_play(
     from zrb_extras.llm.tool.audio_player import play_audio_stream
 
     print("Playing audio (streaming)...")
+    # Get the async iterator by awaiting the coroutine
+    audio_iterator = await response.aiter_bytes()
     await play_audio_stream(
-        response.aiter_bytes(),
+        audio_iterator,
         sample_rate=24000,
         channels=1
     )
