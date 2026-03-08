@@ -22,8 +22,7 @@ listen = create_listen_tool(
     genai_stt_model="gemini-2.5-flash",
     openai_api_key=OPENAI_API_KEY,
     openai_stt_model="whisper-1",
-    # Vosk model (higher quality than default small model)
-    vosk_model_name="vosk-model-en-us-daanzu-20200905",
+    vosk_model_name="vosk-model-small-en-us-0.15",
     sample_rate=16000,
     channels=1,
     silence_threshold=0.01,
