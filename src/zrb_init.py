@@ -1,6 +1,7 @@
 import os
 
 from zrb import to_infinite_stream
+from zrb.llm.tool_call import auto_approve
 from zrb.builtin import llm_chat
 
 from zrb_extras.llm.tool import (
@@ -21,12 +22,15 @@ listen = create_listen_tool(
     genai_stt_model="gemini-2.5-flash",
     openai_api_key=OPENAI_API_KEY,
     openai_stt_model="whisper-1",
+    # Vosk model (higher quality than default small model)
+    vosk_model_name="vosk-model-en-us-daanzu-20200905",
     sample_rate=16000,
     channels=1,
     silence_threshold=0.01,
     max_silence=1.5,
     text_processor=lambda txt: (
-            f"> Note: Respond to the following user message with with speak tool :\n{txt}"
+            f'> The user said: "{txt}"\n\n'
+            f"Respond using the `speak` tool, no need to print anything in the screen."
     ),
     use_sound_classifier=True,
     classification_system_prompt=(
@@ -50,3 +54,4 @@ speak = create_speak_tool(
 
 llm_chat.add_trigger(to_infinite_stream(listen))
 llm_chat.add_tool(speak, fetch_youtube_transcript)
+llm_chat.add_tool_policy(auto_approve("speak"))

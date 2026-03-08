@@ -147,6 +147,107 @@ listen_tool = create_listen_tool(
 - **Improves accuracy**: Only processes actual speech content
 - **Configurable**: Can be tuned for different environments and use cases
 - **Backward compatible**: Existing code continues to work without changes
+
+## Improving Voice Quality (Vosk Mode)
+
+When using `VOICE_MODE=vosk`, speech recognition uses offline Vosk models and text-to-speech uses pyttsx3. Here's how to improve quality:
+
+### Vosk Speech Recognition Models
+
+**Recommended:** For best accuracy, use the larger model. The default small model (~40MB) has limited accuracy.
+
+| Model | Size | Accuracy | Recommended |
+|-------|------|----------|-------------|
+| `vosk-model-en-us-0.22` | ~1.8GB | Best | ✅ **Yes** |
+| `vosk-model-en-us-daanzu-20200905` | ~1GB | Good | Good balance |
+| `vosk-model-small-en-us-0.15` | ~40MB | Limited | Default (not recommended) |
+
+**Easiest way: Auto-download (recommended)**
+
+Vosk auto-downloads models to `~/.cache/vosk/` when you specify `model_name`. Just configure it in `zrb_init.py`:
+
+```python
+listen = create_listen_tool(
+    mode="vosk",
+    vosk_model_name="vosk-model-en-us-0.22",  # Auto-downloads on first use
+    # ... other options
+)
+```
+
+**Alternative: Manual download**
+
+If you prefer to pre-download (e.g., on a machine with better internet):
+```bash
+mkdir -p ~/.cache/vosk
+cd ~/.cache/vosk
+wget https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip
+unzip vosk-model-en-us-0.22.zip
+rm vosk-model-en-us-0.22.zip
+```
+
+**Alternative: Use `vosk_model_path` for custom locations:**
+```python
+listen_tool = create_listen_tool(
+    mode="vosk",
+    vosk_model_path="/custom/path/to/vosk-model-en-us-0.22",
+)
+```
+
+### pyttsx3 Text-to-Speech Quality
+
+pyttsx3 uses your system's TTS engine. On Linux, it uses espeak/espeak-ng.
+
+1. **Install espeak-ng for better voices**:
+   ```bash
+   # Ubuntu/Debian
+   sudo apt install espeak-ng
+   
+   # Fedora
+   sudo dnf install espeak-ng
+   ```
+
+2. **List available voices**:
+   ```python
+   from zrb_extras.llm.tool.pyttsx3.speak import list_available_voices
+   for voice in list_available_voices():
+       print(f"{voice['id']}: {voice['name']}")
+   ```
+
+3. **Configure voice via environment variables**:
+   ```bash
+   # Set a specific voice (espeak-ng variants)
+   export PYTTSX3_VOICE_NAME="english-us+m3"   # Male voice
+   # export PYTTSX3_VOICE_NAME="english-us+f3" # Female voice
+   
+   # Adjust speed (words per minute, default 150)
+   export PYTTSX3_VOICE_RATE="150"
+   
+   # Adjust volume (0.0 to 1.0, default 1.0)
+   export PYTTSX3_VOICE_VOLUME="0.9"
+   ```
+
+4. **Or pass to create_speak_tool**:
+   ```python
+   speak_tool = create_speak_tool(
+       mode="vosk",
+       voice_name="english-us+m3",  # Specific voice
+       rate=150,                     # Words per minute
+       volume=0.9,                   # Volume (0.0-1.0)
+   )
+   ```
+
+### macOS Users
+
+On macOS, pyttsx3 falls back to the native `say` command which has better quality. You can use any installed macOS voice:
+
+```bash
+# List available voices
+say -v ?
+
+# Set voice
+export PYTTSX3_VOICE_NAME="Samantha"  # Female voice
+# export PYTTSX3_VOICE_NAME="Daniel"  # Male voice
+```
 ```
 
 
