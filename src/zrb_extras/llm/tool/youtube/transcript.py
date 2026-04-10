@@ -22,9 +22,10 @@ def fetch_youtube_transcript(url: str):
         raise ValueError("Could not extract a video id from the provided string/url")
     print(f"VIDEO ID: {video_id}")
     try:
-        # get_transcript / get_transcripts / fetch — either is fine; common call:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        return " ".join([snippet["text"] for snippet in transcript])
+        # v1.x: instantiate the API, then call .fetch(video_id)
+        api = YouTubeTranscriptApi()
+        transcript = api.fetch(video_id)
+        return " ".join([snippet.text for snippet in transcript])
     except TranscriptsDisabled:
         print("Transcripts are disabled for this video.")
     except NoTranscriptFound:
