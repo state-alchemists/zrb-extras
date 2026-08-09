@@ -94,7 +94,7 @@ The `create_listen_tool` now includes an optional sound classification feature t
 1. **VAD is always used** for initial speech detection (already implemented in existing listen tools)
 2. **When `use_sound_classifier=True`**, transcripts are classified by an LLM using zrb's small model configuration system
 3. **Fail-safe default**: If the classifier fails, it assumes the sound should be handled as speech
-4. **Structured output**: Uses structured output types similar to `../zrb/src/zrb/task/llm/history_processor.py` pattern
+4. **Structured output**: Uses structured output types similar to zrb's `zrb.llm.agent.create_agent` `output_type=` pattern
 5. **Configurable**: Supports custom models, prompts, retries, and rate limiting
 
 ### Usage Examples:

@@ -3,8 +3,7 @@
 Unit tests for sound classifier module.
 """
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -96,16 +95,11 @@ class TestCreateSoundClassifier:
             "reason": "Clear speech",
         }
 
-        # Create a mock agent run result
-        mock_run_result = MagicMock()
-        mock_run_result.result = MagicMock()
-        mock_run_result.result.output = mock_response
-        mock_run_result.result.usage = MagicMock(return_value="tokens: 10")
-
+        # Mock the run_agent call: it returns (result_output, message_history)
         with patch(
-            "zrb_extras.llm.tool.sound_classifier.run_agent_iteration"
+            "zrb_extras.llm.tool.sound_classifier.run_agent"
         ) as mock_run_agent:
-            mock_run_agent.return_value = mock_run_result
+            mock_run_agent.return_value = (mock_response, [])
 
             # Create classifier
             classifier = create_sound_classifier(
@@ -144,7 +138,7 @@ class TestCreateSoundClassifier:
         """Test sound classifier when LLM fails."""
         # Mock LLM to raise exception
         with patch(
-            "zrb_extras.llm.tool.sound_classifier.run_agent_iteration"
+            "zrb_extras.llm.tool.sound_classifier.run_agent"
         ) as mock_run_agent:
             mock_run_agent.side_effect = Exception("LLM error")
 

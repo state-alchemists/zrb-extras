@@ -112,7 +112,7 @@ def create_sound_classifier(
                 agent=classification_agent,
                 message=classification_message,
                 message_history=[],
-                limiter=default_llm_rate_limitter,
+                limiter=rate_limitter,
             )
             if isinstance(result, dict):
                 # Ensure required fields are present
