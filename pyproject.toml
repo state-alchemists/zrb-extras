@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zrb-extras"
-version = "2.1.0"
+version = "2.2.0"
 description = "Collection of Zrb additional utilities"
 authors = ["Go Frendi Gunawan <gofrendiasgard@gmail.com>"]
 license = "AGPL-3.0-or-later"
@@ -12,13 +12,16 @@ keywords = []
 
 [tool.poetry.dependencies]
 python = ">=3.11.0,<3.15"
-zrb = ">=2.58.0"
+zrb = ">=2.67.5"
 sounddevice = { version = "^0.5.2", optional = true }
-google-genai = { version = "^1.70.0", optional = true }
+google-genai = { version = ">=2.18.0", optional = true }
 soundfile = { version = "^0.13.1", optional = true }
 numpy = { version = "^2.3.2", optional = true }
-openai = { version = "^2.45.0", optional = true }
-vosk = { version = "^0.3.44", optional = true }
+openai = { version = "^3.0.0", optional = true }
+vosk = [
+    { version = ">=0.3.44,<0.3.45", optional = true, markers = "sys_platform == 'darwin'" },
+    { version = ">=0.3.45", optional = true, markers = "sys_platform != 'darwin'" },
+]
 pyttsx3 = { version = "^2.99", optional = true }
 youtube-transcript-api = { version = "^1.2.4", optional = true }
 
