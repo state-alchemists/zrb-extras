@@ -3,9 +3,10 @@ import sys
 import traceback
 from typing import TYPE_CHECKING, Callable, Coroutine
 
-from zrb import llm_config, llm_limiter as default_llm_rate_limitter
-from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
+from zrb import llm_limiter as default_llm_rate_limitter
 from zrb.llm.agent import run_agent
+from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
+from zrb.llm.config.model_resolver import resolve_configured_model
 
 if sys.version_info >= (3, 12):
     from typing import TypedDict
@@ -66,9 +67,7 @@ def create_sound_classifier(
     if rate_limitter is None:
         rate_limitter = default_llm_rate_limitter
     if classification_model is None:
-        classification_model = llm_config.model
-    if classification_model_settings is None:
-        classification_model_settings = llm_config.model_settings
+        classification_model = resolve_configured_model()
     if classification_system_prompt is None:
         classification_system_prompt = (
             "You are a sound classifier. Analyze the provided transcript "

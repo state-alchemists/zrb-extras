@@ -1,7 +1,7 @@
 import os
 
 from zrb import to_infinite_stream
-from zrb.llm.tool_call import auto_approve
+from zrb.llm.tool_call.tool_policy.auto_approve import auto_approve
 from zrb.builtin import llm_chat
 
 from zrb_extras.llm.tool import (
@@ -51,6 +51,6 @@ speak = create_speak_tool(
     sample_rate_out=24000,
 )
 
-llm_chat.add_trigger(to_infinite_stream(listen))
-llm_chat.add_tool(speak, fetch_youtube_transcript)
-llm_chat.add_tool_policy(auto_approve("speak"))
+llm_chat.append_trigger(to_infinite_stream(listen))
+llm_chat.append_tool(speak, fetch_youtube_transcript)
+llm_chat.prepend_tool_policy(auto_approve("speak"))
