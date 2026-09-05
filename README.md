@@ -46,8 +46,7 @@ apt install libasound2-dev portaudio19-dev pulseaudio
 
 ```python
 import os
-from zrb.builtin import llm_ask
-from zrb import llm_config
+from zrb.builtin import llm_chat
 from zrb_extras.llm.tool import create_listen_tool, create_speak_tool
 
 # Valid modes: "google", "openai", "termux", "vosk"
@@ -55,7 +54,7 @@ VOICE_MODE = os.getenv("VOICE_MODE", "vosk")
 if VOICE_MODE not in ("google", "openai", "termux", "vosk"):
     VOICE_MODE = "vosk"
 
-llm_ask.add_tool(
+llm_chat.append_tool(
     create_speak_tool(
         mode=VOICE_MODE,
         genai_tts_model="gemini-2.5-flash-preview-tts",  # Optional
@@ -65,7 +64,7 @@ llm_ask.add_tool(
         sample_rate_out=24000,  # Optional
     )
 )
-llm_ask.add_tool(
+llm_chat.append_tool(
     create_listen_tool(
         mode=VOICE_MODE,
         genai_stt_model="gemini-2.5-flash",  # Optional
