@@ -43,15 +43,17 @@ def create_listen_tool(
         # This helps in noisy environments where you don't want the dialog
         # to stay open or trigger prematurely.
         try:
-            # We just use VAD to detect the START of speech.
-            # Once speech is detected, we invoke the native Termux STT which has its own recording.
-            # This is a bit of a hybrid approach because we can't easily feed our audio to termux-speech-to-text.
+            # We just use VAD to detect the START of speech; the native
+            # Termux STT does its own recording once speech is detected. A
+            # hybrid approach, because our audio can't be fed to
+            # termux-speech-to-text directly.
             print("Monitoring for speech (VAD)...")
             await record_until_silence(
                 sample_rate=sample_rate,
                 channels=channels,
                 silence_threshold=silence_threshold,
-                max_silence=0.1,  # Very short max_silence because we just want to detect the start
+                # Very short, because we only want to detect the start.
+                max_silence=0.1,
             )
         except (ImportError, Exception):
             # Fallback to direct call if sounddevice/numpy missing or fails

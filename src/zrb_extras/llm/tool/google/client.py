@@ -16,7 +16,8 @@ def get_client(
         from google import genai
     except ImportError:
         raise ImportError(
-            "google-genai is not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+            "google-genai is not installed. Please install "
+            "zrb-extras[google-genai] or zrb-extras[all]."
         )
 
     if api_key is None:

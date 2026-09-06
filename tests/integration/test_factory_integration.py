@@ -3,8 +3,7 @@
 Integration tests for factory module with sound classification.
 """
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -74,7 +73,7 @@ class TestFactoryIntegration:
                 classification_model_settings=None,
                 classification_system_prompt="Classify speech",
                 classification_retries=2,
-                rate_limitter=None,
+                limiter=None,
                 fail_safe=True,  # Default
             )
 

@@ -8,6 +8,7 @@ import wave
 # Global flag to disable sounddevice if it fails once
 _SOUNDDEVICE_DISABLED = False
 
+
 async def play_audio(
     data: bytes | io.BytesIO,
     sample_rate: int | None = None,
@@ -32,9 +33,13 @@ async def play_audio(
 
     # Prefer afplay on macOS
     if sys.platform == "darwin":
-        await _play_with_afplay(audio_content, is_wav, sample_rate, channels, sample_width)
+        await _play_with_afplay(
+            audio_content, is_wav, sample_rate, channels, sample_width
+        )
     else:
-        await _play_with_sounddevice(audio_content, is_wav, sample_rate, channels, sample_width)
+        await _play_with_sounddevice(
+            audio_content, is_wav, sample_rate, channels, sample_width
+        )
 
 
 async def _play_with_afplay(
@@ -124,60 +129,61 @@ async def play_audio_stream(
         return
 
     event_loop = asyncio.get_running_loop()
-    
+
     # We use a residue buffer to handle chunks that aren't multiples of sample width
     residue = bytearray()
 
     try:
-        # Open a blocking OutputStream. 
+        # Open a blocking OutputStream.
         # using int16 to match source data avoids conversion noise.
         stream = sd.OutputStream(
             samplerate=sample_rate,
             channels=channels,
             dtype='int16',
-            blocksize=2048 # Reasonable blocksize for blocking writes
+            blocksize=2048,  # Reasonable blocksize for blocking writes
         )
-        
+
         with stream:
             # Handle the case where audio_generator might be a coroutine
             import inspect
             if inspect.isawaitable(audio_generator):
                 audio_generator = await audio_generator
-            
+
             async for chunk in audio_generator:
                 if not chunk:
                     continue
-                
+
                 # Handle residue from previous chunk
                 if residue:
                     chunk = residue + chunk
                     residue = bytearray()
-                
+
                 # Check alignment (2 bytes per sample for int16)
                 remainder = len(chunk) % 2
                 if remainder != 0:
                     residue = chunk[-remainder:]
                     chunk = chunk[:-remainder]
-                
+
                 if len(chunk) == 0:
                     continue
 
                 # Convert to numpy array
                 data = np.frombuffer(chunk, dtype=np.int16)
-                
+
                 # Write to stream in a separate thread to avoid blocking asyncio loop
                 # stream.write is blocking.
                 await event_loop.run_in_executor(None, stream.write, data)
 
     except Exception as e:
-        print(f"Streaming error (sounddevice): {e}. Falling back to afplay.", file=sys.stderr)
-        _SOUNDDEVICE_DISABLED = True # Disable for future calls to avoid repeated failures
-        # Note: We might have lost the chunks already consumed. 
-        # In a real generator, we can't rewind. 
-        # So this fallback only works for *future* calls or if we buffered everything (which defeats streaming).
-        # For now, we just accept the error and let the user know. 
-        # If the failure happens immediately, next turns will use afplay.
-        pass
+        print(
+            f"Streaming error (sounddevice): {e}. Falling back to afplay.",
+            file=sys.stderr,
+        )
+        # Disable for future calls to avoid repeated failures. The chunks
+        # already consumed are gone -- a generator can't be rewound -- so this
+        # only helps the *next* call, which will go straight to afplay.
+        _SOUNDDEVICE_DISABLED = True
+
 
 async def _fallback_play_collected(audio_generator, sample_rate, channels):
     """Collects all audio and plays it using the reliable non-streaming method."""

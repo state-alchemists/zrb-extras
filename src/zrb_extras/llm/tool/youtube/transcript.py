@@ -14,7 +14,8 @@ def fetch_youtube_transcript(url: str):
         )
     except ImportError:
         raise ImportError(
-            "youtube-transcript-api is not installed. Please install zrb-extras[youtube] or zrb-extras[all]."
+            "youtube-transcript-api is not installed. Please install "
+            "zrb-extras[youtube] or zrb-extras[all]."
         )
 
     video_id = extract_video_id(url)

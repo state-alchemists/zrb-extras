@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from openai import AsyncOpenAI
     from pydantic_ai.models import Model
     from pydantic_ai.settings import ModelSettings
-    from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
+    from zrb.llm.config.limiter import LLMLimiter
 
     from zrb_extras.llm.tool.google.speak import (
         MultiSpeakerVoice as GoogleMultiSpeakerVoice,
@@ -58,7 +58,7 @@ def create_listen_tool(
     classification_model_settings: "ModelSettings | None" = None,
     classification_system_prompt: str | None = None,
     classification_retries: int = 2,
-    rate_limitter: "LLMRateLimitter | None" = None,
+    limiter: "LLMLimiter | None" = None,
     fail_safe: bool = True,
     # Google (GenAI)
     genai_client: "genai.Client | None" = None,
@@ -147,7 +147,7 @@ def create_listen_tool(
             classification_model_settings=classification_model_settings,
             classification_system_prompt=classification_system_prompt,
             classification_retries=classification_retries,
-            rate_limitter=rate_limitter,
+            limiter=limiter,
             fail_safe=fail_safe,
         )
 

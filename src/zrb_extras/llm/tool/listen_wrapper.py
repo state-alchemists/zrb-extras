@@ -8,7 +8,7 @@ from zrb_extras.llm.tool.sound_classifier import (
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
     from pydantic_ai.settings import ModelSettings
-    from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
+    from zrb.llm.config.limiter import LLMLimiter
 
 
 def create_listen_tool_with_classification(
@@ -19,7 +19,7 @@ def create_listen_tool_with_classification(
     classification_model_settings: "ModelSettings | None" = None,
     classification_system_prompt: str | None = None,
     classification_retries: int = 2,
-    rate_limitter: "LLMRateLimitter | None" = None,
+    limiter: "LLMLimiter | None" = None,
     # Behavior parameters
     fail_safe: bool = True,
 ) -> Callable[[], Coroutine[Any, Any, str]]:
@@ -33,7 +33,7 @@ def create_listen_tool_with_classification(
         classification_model_settings: Settings for the classification model.
         classification_system_prompt: System prompt for the classifier.
         classification_retries: Number of retries for classification.
-        rate_limitter: Rate limiter for LLM calls.
+        limiter: Rate limiter for LLM calls.
         fail_safe: If True, classifier failures default to handling speech.
 
     Returns:
@@ -53,7 +53,7 @@ def create_listen_tool_with_classification(
             return transcript
         # Step 3: Create classifier and classify transcript
         classify_transcript = create_sound_classifier(
-            rate_limitter=rate_limitter,
+            limiter=limiter,
             classification_model=classification_model,
             classification_model_settings=classification_model_settings,
             classification_system_prompt=classification_system_prompt,

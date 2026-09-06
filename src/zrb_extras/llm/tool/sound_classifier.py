@@ -3,9 +3,9 @@ import sys
 import traceback
 from typing import TYPE_CHECKING, Callable, Coroutine
 
-from zrb import llm_limiter as default_llm_rate_limitter
+from zrb import llm_limiter
 from zrb.llm.agent import run_agent
-from zrb.llm.config.limiter import LLMLimiter as LLMRateLimitter
+from zrb.llm.config.limiter import LLMLimiter
 from zrb.llm.config.model_resolver import resolve_configured_model
 
 if sys.version_info >= (3, 12):
@@ -43,7 +43,7 @@ def classify_sound(sound_classification: SoundClassification):
 
 
 def create_sound_classifier(
-    rate_limitter: LLMRateLimitter | None = None,
+    limiter: LLMLimiter | None = None,
     classification_model: "Model | str | None" = None,
     classification_model_settings: "ModelSettings | None" = None,
     classification_system_prompt: str | None = None,
@@ -53,7 +53,7 @@ def create_sound_classifier(
     Creates a sound classification function that uses LLM to classify transcripts.
 
     Args:
-        rate_limitter: Rate limiter for LLM calls.
+        limiter: Rate limiter for LLM calls.
         classification_model: Model to use for classification.
         classification_model_settings: Settings for the classification model.
         classification_system_prompt: System prompt for the classifier.
@@ -64,8 +64,8 @@ def create_sound_classifier(
     """
     from pydantic_ai import Agent
 
-    if rate_limitter is None:
-        rate_limitter = default_llm_rate_limitter
+    if limiter is None:
+        limiter = llm_limiter
     if classification_model is None:
         classification_model = resolve_configured_model()
     if classification_system_prompt is None:
@@ -111,7 +111,7 @@ def create_sound_classifier(
                 agent=classification_agent,
                 message=classification_message,
                 message_history=[],
-                limiter=rate_limitter,
+                limiter=limiter,
             )
             if isinstance(result, dict):
                 # Ensure required fields are present

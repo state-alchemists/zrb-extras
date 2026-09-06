@@ -115,7 +115,7 @@ listen_tool = create_listen_tool(
     classification_system_prompt="Classify speech vs noise",
     classification_retries=3,
     fail_safe=False,  # Raise exception on classification failure
-    rate_limitter=my_rate_limiter,
+    limiter=my_limiter,
     tool_name="custom_classifier_listen"
 )
 

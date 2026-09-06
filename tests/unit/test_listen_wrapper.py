@@ -3,7 +3,7 @@
 Unit tests for listen wrapper module.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

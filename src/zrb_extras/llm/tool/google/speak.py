@@ -1,7 +1,4 @@
-import asyncio
 import base64
-import io
-import wave
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from typing_extensions import TypedDict
@@ -53,7 +50,8 @@ def create_speak_tool(
           voice_name: The voice or voices to use.
             - For a single speaker, provide a voice name string (e.g., "Sulafat").
             - For multiple speakers (up to two), provide a list of speaker-voice mappings.
-              Example: `[{"speaker": "User", "voice": "Aoede"}, {"speaker": "Agent", "voice": "Puck"}]`
+              Example: `[{"speaker": "User", "voice": "Aoede"},
+              {"speaker": "Agent", "voice": "Puck"}]`
 
           Available voices:
           - Zephyr (Female, Bright)
@@ -114,23 +112,26 @@ async def _synthesize_and_play(
     safety_settings: "list[types.SafetySetting] | None" = None,
 ):
     try:
-        import sounddevice as sd
-        import soundfile as sf
+        # Probed here so a missing extra fails before the TTS request; the
+        # playback itself happens in audio_player.
+        import sounddevice  # noqa: F401
+        import soundfile  # noqa: F401
         from google.genai import types
     except ImportError:
         raise ImportError(
-            "google-genai dependencies are not installed. Please install zrb-extras[google-genai] or zrb-extras[all]."
+            "google-genai dependencies are not installed. Please install "
+            "zrb-extras[google-genai] or zrb-extras[all]."
         )
 
     if not text:
         text = "I have nothing to say."
-    
+
     print("Requesting TTS...")
-    
+
     # Check if text appears ambiguous (could be interpreted as a command)
     # We'll prepend "Say:" if the text doesn't already have clear speech instructions
     import re
-    
+
     # Patterns that indicate the text already has speech instructions
     instruction_patterns = [
         r'^say\s+',  # "say something"
@@ -143,30 +144,34 @@ async def _synthesize_and_play(
         r'^"',  # starts with quote
         r"^'",  # starts with single quote
     ]
-    
+
     has_instruction = any(re.search(pattern, text.lower()) for pattern in instruction_patterns)
-    
+
     # Also check if text ends with punctuation that suggests it's complete speech
     is_complete_speech = text.endswith(('.', '!', '?', '."', '!"', '?"', ".'", "!'", "?'"))
-    
+
     # If text doesn't have clear instructions and doesn't look like complete speech,
     # prepend "Say:" to make it clear this is text to be spoken
     if not has_instruction and not is_complete_speech:
         # Check if text contains words that might make it ambiguous
-        ambiguous_words = ['test', 'check', 'verify', 'functionality', 'tts', 'text to speech', 'speech']
+        ambiguous_words = [
+            'test', 'check', 'verify', 'functionality',
+            'tts', 'text to speech', 'speech',
+        ]
         has_ambiguous_words = any(word in text.lower() for word in ambiguous_words)
-        
-        if has_ambiguous_words or len(text.split()) < 4:  # Short texts are more likely to be ambiguous
+
+        # Short texts are more likely to be ambiguous.
+        if has_ambiguous_words or len(text.split()) < 4:
             text = f"Say: {text}"
-    
+
     # Debug: print what we're sending
     print(f"TTS request text: {repr(text)}")
-    
+
     # Build the config
     config_kwargs = {
         "response_modalities": ["AUDIO"],
     }
-    
+
     # Add speech config
     if isinstance(voice_name, list):
         config_kwargs["speech_config"] = types.SpeechConfig(
@@ -192,11 +197,11 @@ async def _synthesize_and_play(
                 )
             )
         )
-    
+
     # Add safety settings if provided
     if safety_settings:
         config_kwargs["safety_settings"] = safety_settings
-    
+
     resp = client.models.generate_content(
         model=tts_model,
         contents=text,

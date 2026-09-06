@@ -18,17 +18,18 @@ def create_speak_tool(
 ) -> Callable[[str, str | None], Coroutine[Any, Any, bool]]:
     """
     Factory to create a speak tool using pyttsx3 (offline TTS).
-    
+
     Configuration can be done via:
     - Function parameters (highest priority)
     - Environment variables: PYTTSX3_VOICE_NAME, PYTTSX3_VOICE_RATE, PYTTSX3_VOICE_VOLUME
-    
+
     To see available voices, run:
-        python -c "import pyttsx3; e=pyttsx3.init(); print([v.id for v in e.getProperty('voices')])"
-    
+        python -c "import pyttsx3; e=pyttsx3.init(); \
+            print([v.id for v in e.getProperty('voices')])"
+
     On Linux, you may need to install espeak-ng for better voice quality:
         sudo apt install espeak-ng
-    
+
     Common voice IDs on Linux (espeak-ng):
         - english-us (default)
         - english-us+m1 (male)
@@ -51,7 +52,7 @@ def create_speak_tool(
                 # mapping: say_rate = (rate / 200) * 175
                 say_rate = int((rate / 200) * 175)
                 cmd.extend(["-r", str(say_rate)])
-            
+
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.DEVNULL,
@@ -62,33 +63,40 @@ def create_speak_tool(
 
         # Capture closure variables to avoid confusion with local args
         # Also check environment variables for configuration
-        factory_rate = rate if rate is not None else _get_env_int(ENV_VOICE_RATE, 150)
-        factory_volume = volume if volume is not None else _get_env_float(ENV_VOICE_VOLUME, 1.0)
+        factory_rate = (
+            rate if rate is not None else _get_env_int(ENV_VOICE_RATE, 150)
+        )
+        factory_volume = (
+            volume
+            if volume is not None
+            else _get_env_float(ENV_VOICE_VOLUME, 1.0)
+        )
 
         def _speak_sync():
             try:
                 import pyttsx3
             except ImportError:
                 raise ImportError(
-                    "pyttsx3 is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+                    "pyttsx3 is not installed. Please install "
+                    "zrb-extras[vosk] or zrb-extras[all]."
                 )
 
             try:
                 engine = pyttsx3.init()
-                
+
                 # Resolve voice: parameter > env var > None (system default)
                 final_voice = voice_name or os.environ.get(ENV_VOICE_NAME)
                 if final_voice:
                     engine.setProperty("voice", final_voice)
-                
+
                 # Set rate (words per minute, 150 is a good default for clarity)
                 if factory_rate:
                     engine.setProperty("rate", factory_rate)
-                
+
                 # Set volume (0.0 to 1.0)
                 if factory_volume is not None:
                     engine.setProperty("volume", factory_volume)
-                
+
                 print(f"Speaking (pyttsx3): {text}")
                 engine.say(text)
                 engine.runAndWait()
@@ -131,7 +139,7 @@ def _get_env_float(name: str, default: float) -> float:
 def list_available_voices() -> list[dict[str, str]]:
     """
     List all available pyttsx3 voices.
-    
+
     Returns a list of dicts with 'id', 'name', and 'languages' keys.
     """
     try:
@@ -140,7 +148,7 @@ def list_available_voices() -> list[dict[str, str]]:
         raise ImportError(
             "pyttsx3 is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
         )
-    
+
     engine = pyttsx3.init()
     voices = engine.getProperty("voices")
     result = []

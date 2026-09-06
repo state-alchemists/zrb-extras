@@ -1,5 +1,3 @@
-import asyncio
-import io
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from zrb_extras.llm.tool.openai.client import get_client
@@ -78,12 +76,15 @@ async def _synthesize_and_play(
     sample_rate_out: int = 24000,
 ):
     try:
-        import sounddevice as sd
-        import soundfile as sf
-        from openai import Omit, omit
+        # Probed here so a missing extra fails before the TTS request; the
+        # playback itself happens in audio_player.
+        import sounddevice  # noqa: F401
+        import soundfile  # noqa: F401
+        from openai import omit
     except ImportError:
         raise ImportError(
-            "openai, sounddevice, or soundfile is not installed. Please install zrb-extras[openai] or zrb-extras[all]."
+            "openai, sounddevice, or soundfile is not installed. Please "
+            "install zrb-extras[openai] or zrb-extras[all]."
         )
     if not text:
         text = "I have nothing to say."
