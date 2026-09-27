@@ -78,7 +78,7 @@ def create_speak_tool(
             except ImportError:
                 raise ImportError(
                     "pyttsx3 is not installed. Please install "
-                    "zrb-extras[vosk] or zrb-extras[all]."
+                    "zrb-extras[pyttsx3] or zrb-extras[all]."
                 )
 
             try:
@@ -146,7 +146,7 @@ def list_available_voices() -> list[dict[str, str]]:
         import pyttsx3
     except ImportError:
         raise ImportError(
-            "pyttsx3 is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+            "pyttsx3 is not installed. Please install zrb-extras[pyttsx3] or zrb-extras[all]."
         )
 
     engine = pyttsx3.init()
