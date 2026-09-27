@@ -17,18 +17,18 @@ Talking *to* zrb is built into zrb itself since 3.10: `/voice` and `/handsfree` 
 
 > Use the `speak` tool **or** zrb's built-in speech, not both, or replies are said twice.
 
-### Or: Termux and pyttsx3 voices for zrb's built-in speech
+### Or: a pyttsx3 voice for zrb's built-in speech
 
-zrb reads replies aloud with `say`, `espeak-ng`, OpenAI or Gemini. zrb-extras adds two more backends for it: `TermuxSpeechBackend` (Android's voices through Termux:API) and `Pyttsx3SpeechBackend` (offline, in process; extra `[pyttsx3]`). If one fails, zrb's local engine speaks instead.
+zrb reads replies aloud with Termux:API (on Android), `say`, `espeak-ng`, OpenAI or Gemini. zrb-extras adds `Pyttsx3SpeechBackend`: offline, in process, extra `[pyttsx3]`. If it fails, zrb's local engine speaks instead.
 
 ```python
 from zrb.builtin import llm_chat
 from zrb.llm.speech import SpeechConfig, enable_speech
-from zrb_extras.llm.speech import TermuxSpeechBackend
+from zrb_extras.llm.speech import Pyttsx3SpeechBackend
 
 enable_speech(
     llm_chat,
-    SpeechConfig(backend=TermuxSpeechBackend(language="en", rate=1.1), enabled=True),
+    SpeechConfig(backend=Pyttsx3SpeechBackend(rate=150), enabled=True),
 )
 ```
 

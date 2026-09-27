@@ -2,6 +2,8 @@ import shutil
 import subprocess
 from typing import Any, Callable, Coroutine
 
+from zrb.llm.speech import TermuxSpeechBackend
+
 from .default_config import (
     TTS_ENGINE,
     TTS_LANGUAGE,
@@ -43,8 +45,7 @@ def create_speak_tool(
             raise RuntimeError("termux-tts-speak not found. Is Termux API installed?")
 
         print(f"Speaking: {text}")
-        cmd = create_termux_tts_command(
-            text,
+        cmd = TermuxSpeechBackend(
             language=language,
             voice_name=voice_name,
             engine=engine,
@@ -52,7 +53,7 @@ def create_speak_tool(
             rate=rate,
             pitch=pitch,
             stream=stream,
-        )
+        ).create_command(text)
 
         try:
             subprocess.run(cmd, check=True)
@@ -67,29 +68,3 @@ def create_speak_tool(
         speak.__doc__ = tool_description
     return speak
 
-
-def create_termux_tts_command(
-    text: str,
-    language: str | None = None,
-    voice_name: str | None = None,
-    engine: str | None = None,
-    region: str | None = None,
-    rate: float | None = None,
-    pitch: float | None = None,
-    stream: str | None = None,
-) -> list[str]:
-    """The `termux-tts-speak` argv that says *text*."""
-    cmd = ["termux-tts-speak"]
-    for flag, value in (
-        ("-l", language),
-        ("-e", engine),
-        ("-n", region),
-        ("-v", voice_name),
-        ("-r", rate),
-        ("-p", pitch),
-        ("-s", stream),
-    ):
-        if value:
-            cmd.extend([flag, str(value)])
-    cmd.append(text)
-    return cmd

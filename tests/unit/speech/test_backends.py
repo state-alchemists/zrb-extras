@@ -4,24 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zrb_extras.llm.speech import Pyttsx3SpeechBackend, TermuxSpeechBackend
-
-
-def test_termux_utterance_runs_termux_tts_speak_with_the_options():
-    backend = TermuxSpeechBackend(language="id", voice_name="f1", rate=1.2)
-    with patch("shutil.which", return_value="/usr/bin/termux-tts-speak"):
-        utterance = backend.create_utterance("halo")
-
-    assert utterance.argv == [
-        "termux-tts-speak", "-l", "id", "-v", "f1", "-r", "1.2", "halo"
-    ]
-    assert backend.name == "termux"
-
-
-def test_termux_without_termux_api_raises_so_zrb_falls_back():
-    with patch("shutil.which", return_value=None):
-        with pytest.raises(RuntimeError, match="termux-api"):
-            TermuxSpeechBackend().create_utterance("halo")
+from zrb_extras.llm.speech import Pyttsx3SpeechBackend
 
 
 def test_pyttsx3_utterance_speaks_in_process_with_its_settings():
@@ -47,9 +30,23 @@ def test_pyttsx3_missing_raises_so_zrb_falls_back():
             Pyttsx3SpeechBackend().create_utterance("hello")
 
 
-def test_backends_plug_into_zrb_speech():
+def test_pyttsx3_plugs_into_zrb_speech():
     from zrb.llm.speech import SpeechConfig
     from zrb.llm.speech.backend import get_speech_backend
 
-    backend = TermuxSpeechBackend()
+    backend = Pyttsx3SpeechBackend()
     assert get_speech_backend(backend, SpeechConfig().resolve()) is backend
+
+
+def test_termux_speak_tool_builds_zrb_termux_command():
+    import asyncio
+
+    from zrb_extras.llm.tool.termux.speak import create_speak_tool
+
+    speak = create_speak_tool(language="id")
+    with patch("shutil.which", return_value="/usr/bin/termux-tts-speak"), patch(
+        "subprocess.run"
+    ) as run:
+        assert asyncio.run(speak("halo")) is True
+
+    assert run.call_args.args[0] == ["termux-tts-speak", "-l", "id", "halo"]
