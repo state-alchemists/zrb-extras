@@ -74,33 +74,16 @@ def create_speak_tool(
 
         def _speak_sync():
             try:
-                import pyttsx3
-            except ImportError:
-                raise ImportError(
-                    "pyttsx3 is not installed. Please install "
-                    "zrb-extras[vosk] or zrb-extras[all]."
-                )
-
-            try:
-                engine = pyttsx3.init()
-
-                # Resolve voice: parameter > env var > None (system default)
-                final_voice = voice_name or os.environ.get(ENV_VOICE_NAME)
-                if final_voice:
-                    engine.setProperty("voice", final_voice)
-
-                # Set rate (words per minute, 150 is a good default for clarity)
-                if factory_rate:
-                    engine.setProperty("rate", factory_rate)
-
-                # Set volume (0.0 to 1.0)
-                if factory_volume is not None:
-                    engine.setProperty("volume", factory_volume)
-
                 print(f"Speaking (pyttsx3): {text}")
-                engine.say(text)
-                engine.runAndWait()
+                speak_with_pyttsx3(
+                    text,
+                    voice_name or os.environ.get(ENV_VOICE_NAME),
+                    factory_rate,
+                    factory_volume,
+                )
                 return True
+            except ImportError:
+                raise
             except Exception as e:
                 print(f"Error in pyttsx3: {e}")
                 return False
@@ -112,6 +95,31 @@ def create_speak_tool(
     if tool_description is not None:
         speak.__doc__ = tool_description
     return speak
+
+
+def speak_with_pyttsx3(
+    text: str,
+    voice_name: str | None = None,
+    rate: int | None = None,
+    volume: float | None = None,
+) -> None:
+    """Say *text* with pyttsx3, blocking until it is said."""
+    try:
+        import pyttsx3
+    except ImportError:
+        raise ImportError(
+            "pyttsx3 is not installed. Please install "
+            "zrb-extras[pyttsx3] or zrb-extras[all]."
+        )
+    engine = pyttsx3.init()
+    if voice_name:
+        engine.setProperty("voice", voice_name)
+    if rate:
+        engine.setProperty("rate", rate)
+    if volume is not None:
+        engine.setProperty("volume", volume)
+    engine.say(text)
+    engine.runAndWait()
 
 
 def _get_env_int(name: str, default: int) -> int:
@@ -146,7 +154,7 @@ def list_available_voices() -> list[dict[str, str]]:
         import pyttsx3
     except ImportError:
         raise ImportError(
-            "pyttsx3 is not installed. Please install zrb-extras[vosk] or zrb-extras[all]."
+            "pyttsx3 is not installed. Please install zrb-extras[pyttsx3] or zrb-extras[all]."
         )
 
     engine = pyttsx3.init()

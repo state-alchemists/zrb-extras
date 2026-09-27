@@ -1,2 +1,0 @@
-MODEL_LANG = "en-us"
-SAMPLE_RATE = 16000
