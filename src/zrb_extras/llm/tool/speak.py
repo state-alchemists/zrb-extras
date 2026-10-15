@@ -61,7 +61,13 @@ def create_speak_tool(
             "Sulafat" or "Puck" on Gemini). Leave empty for the default.
           instruction: How to say it (e.g. "cheerful", "whisper slowly").
             Honoured by OpenAI's gpt-4o-mini-tts and by Gemini.
+
+        Returns:
+          True once spoken. An error means nothing was said.
         """
+        if not text.strip():
+            raise ValueError("[SYSTEM SUGGESTION] `text` is blank: pass what to say.")
+        # Speaker.speak raises when no backend could say it or playback failed.
         await asyncio.to_thread(say, text, voice_name, instruction)
         return True
 

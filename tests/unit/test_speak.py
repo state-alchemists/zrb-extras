@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 from zrb.llm.speech import SpeechConfig
 
 from zrb_extras.llm.tool import create_speak_tool
@@ -45,6 +46,25 @@ async def test_speak_closes_the_least_recently_used_speaker_past_the_limit():
 
     speakers[0].close.assert_called_once()
     assert not any(speaker.close.called for speaker in speakers[1:])
+
+
+async def test_speak_refuses_blank_text():
+    with patch("zrb_extras.llm.tool.speak.Speaker") as speaker_class:
+        speak = create_speak_tool()
+        with pytest.raises(ValueError, match="blank"):
+            await speak("   ")
+
+    speaker_class.assert_not_called()
+
+
+async def test_speak_raises_when_nothing_could_be_said():
+    with patch("zrb_extras.llm.tool.speak.Speaker") as speaker_class:
+        speaker_class.return_value.speak.side_effect = RuntimeError(
+            "No speech backend could speak (openai: 401)"
+        )
+        speak = create_speak_tool(SpeechConfig(backend="openai"))
+        with pytest.raises(RuntimeError, match="openai: 401"):
+            await speak("hello")
 
 
 def test_speak_tool_can_be_renamed():
