@@ -1,0 +1,52 @@
+name: "Code Review"
+run-name: "Review PR #${{ github.event.pull_request.number }} by ${{ github.actor }}"
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  review:
+    # author_association stops a drive-by PR from spending tokens on an LLM run.
+    # GitHub withholds secrets from fork PRs, so the review would 401 there anyway.
+    if: >-
+      (github.event.pull_request.author_association == 'OWNER' ||
+       github.event.pull_request.author_association == 'MEMBER' ||
+       github.event.pull_request.author_association == 'COLLABORATOR') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ZRB_LLM_MODEL: ${{ secrets.ZRB_LLM_MODEL || vars.ZRB_LLM_MODEL }}
+      ZRB_LLM_JOURNAL_ENABLED: "false"
+      ZRB_INIT_STRICT: "1"
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install zrb
+        # The reviewer needs zrb only; the root zrb_init.py does not import zrb_extras.
+        run: pip install "zrb>=3.20.0"
+
+      - name: Review and comment
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "⏭️  OPENAI_API_KEY is not configured; skipping the LLM review."
+            exit 0
+          fi
+          zrb submit-comment --range "origin/$GITHUB_BASE_REF...HEAD"

@@ -36,17 +36,3 @@ def test_pyttsx3_plugs_into_zrb_speech():
 
     backend = Pyttsx3SpeechBackend()
     assert get_speech_backend(backend, SpeechConfig().resolve()) is backend
-
-
-def test_termux_speak_tool_builds_zrb_termux_command():
-    import asyncio
-
-    from zrb_extras.llm.tool.termux.speak import create_speak_tool
-
-    speak = create_speak_tool(language="id")
-    with patch("shutil.which", return_value="/usr/bin/termux-tts-speak"), patch(
-        "subprocess.run"
-    ) as run:
-        assert asyncio.run(speak("halo")) is True
-
-    assert run.call_args.args[0] == ["termux-tts-speak", "-l", "id", "halo"]

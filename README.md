@@ -5,15 +5,15 @@ zrb-extras is a [pypi](https://pypi.org) package.
 You can install zrb-extras by invoking the following command:
 
 ```bash
-pip install zrb-extras            # then pick the extras for your backend:
-pip install "zrb-extras[openai]"  # or [google-genai], [pyttsx3], [youtube], [all]
+pip install zrb-extras
+pip install "zrb-extras[pyttsx3]"  # or [youtube], [all]
 ```
 
 ## Let your LLM task `speak`
 
 `create_speak_tool` gives the agent a tool that says text aloud. The agent decides what to say and when, which suits an `LLMTask` that runs unattended ("the build finished") or a persona that should talk rather than print.
 
-Talking *to* zrb is built into zrb itself since 3.10: `/voice` and `/handsfree` dictate, and hands-free can answer tool approvals. zrb can also read every reply aloud (`ZRB_LLM_SPEECH_ENABLED=on`). See zrb's [Voice and Camera](https://github.com/state-alchemists/zrb/blob/main/docs/llm/voice-camera.md) guide. The `listen` tool that used to live here was removed in zrb-extras 3.1.0 for that reason.
+Talking *to* zrb is built into zrb itself since 3.10: `/voice` and `/handsfree` dictate, and hands-free can answer tool approvals. zrb can also read every reply aloud (`ZRB_LLM_SPEECH_ENABLED=on`). See zrb's [Voice and Camera](https://github.com/state-alchemists/zrb/blob/main/docs/llm/voice-camera.md) guide. The `listen` tool that used to live here was removed in zrb-extras 3.1.0 for that reason, and since 4.0.0 `speak` runs on zrb's speech backends instead of its own OpenAI, Gemini, Termux and pyttsx3 clients.
 
 > Use the `speak` tool **or** zrb's built-in speech, not both, or replies are said twice.
 
@@ -63,86 +63,38 @@ apt install libasound2-dev portaudio19-dev pulseaudio
 
 ### Create `zrb_init.py`
 
-```python
-import os
+`create_speak_tool` takes zrb's `SpeechConfig`, so it speaks through the same backends as zrb's built-in speech: `auto` (Termux:API, `say` or `espeak-ng`), `openai`, `gemini`, a Pipecat voice like `kokoro` (needs `zrb[voice]`), or a backend object such as `Pyttsx3SpeechBackend`. Fields left out are read from `ZRB_LLM_SPEECH_*`.
 
+```python
 from zrb.builtin import llm_chat
+from zrb.llm.speech import SpeechConfig
 from zrb.llm.tool_call.tool_policy.auto_approve import auto_approve
 from zrb_extras.llm.tool import create_speak_tool
 
-# Valid modes: "google", "openai", "termux", "pyttsx3"
-VOICE_MODE = os.getenv("VOICE_MODE", "pyttsx3")
-
 llm_chat.append_tool(
-    create_speak_tool(
-        mode=VOICE_MODE,
-        genai_tts_model="gemini-2.5-flash-preview-tts",  # Optional
-        genai_voice_name="Sulafat",  # Optional
-        openai_tts_model="tts-1",  # Optional
-        openai_voice_name="alloy",  # Optional
-        sample_rate_out=24000,  # Optional
-    )
+    create_speak_tool(SpeechConfig(backend="openai", voice="alloy"))
 )
 llm_chat.prepend_tool_policy(auto_approve("speak"))
 ```
 
+The agent can pick a `voice_name` and an `instruction` ("cheerful", "whisper") on each call. OpenAI's `gpt-4o-mini-tts` and Gemini follow the instruction; a backend passed as an object ignores both.
+
 `fetch_youtube_transcript` (extra `[youtube]`) is another tool in the same package: `llm_chat.append_tool(fetch_youtube_transcript)`.
 
-### pyttsx3 voice quality
+### pyttsx3 voices
 
-pyttsx3 uses your system's TTS engine. On Linux, it uses espeak/espeak-ng.
+pyttsx3 uses your system's TTS engine (espeak/espeak-ng on Linux; `sudo apt install espeak-ng` for better voices).
 
-1. **Install espeak-ng for better voices**:
-   ```bash
-   # Ubuntu/Debian
-   sudo apt install espeak-ng
-   
-   # Fedora
-   sudo dnf install espeak-ng
-   ```
+```python
+from zrb_extras.llm.speech import Pyttsx3SpeechBackend
+from zrb_extras.llm.speech.backend.pyttsx3 import list_available_voices
 
-2. **List available voices**:
-   ```python
-   from zrb_extras.llm.tool.pyttsx3.speak import list_available_voices
-   for voice in list_available_voices():
-       print(f"{voice['id']}: {voice['name']}")
-   ```
+for voice in list_available_voices():
+    print(f"{voice['id']}: {voice['name']}")
 
-3. **Configure voice via environment variables**:
-   ```bash
-   # Set a specific voice (espeak-ng variants)
-   export PYTTSX3_VOICE_NAME="english-us+m3"   # Male voice
-   # export PYTTSX3_VOICE_NAME="english-us+f3" # Female voice
-   
-   # Adjust speed (words per minute, default 150)
-   export PYTTSX3_VOICE_RATE="150"
-   
-   # Adjust volume (0.0 to 1.0, default 1.0)
-   export PYTTSX3_VOICE_VOLUME="0.9"
-   ```
-
-4. **Or pass to create_speak_tool**:
-   ```python
-   speak_tool = create_speak_tool(
-       mode="pyttsx3",
-       pyttsx3_voice_name="english-us+m3",  # Specific voice
-       pyttsx3_rate=150,                     # Words per minute
-       pyttsx3_volume=0.9,                   # Volume (0.0-1.0)
-   )
-   ```
-
-### macOS Users
-
-On macOS, pyttsx3 falls back to the native `say` command which has better quality. You can use any installed macOS voice:
-
-```bash
-# List available voices
-say -v ?
-
-# Set voice
-export PYTTSX3_VOICE_NAME="Samantha"  # Female voice
-# export PYTTSX3_VOICE_NAME="Daniel"  # Male voice
-```
+create_speak_tool(
+    SpeechConfig(backend=Pyttsx3SpeechBackend(voice_name="english-us+m3", rate=150, volume=0.9))
+)
 ```
 
 # For maintainers
