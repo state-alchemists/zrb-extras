@@ -8,13 +8,9 @@ on:
 
 jobs:
   review:
-    # author_association stops a drive-by PR from spending tokens on an LLM run.
-    # GitHub withholds secrets from fork PRs, so the review would 401 there anyway.
-    if: >-
-      (github.event.pull_request.author_association == 'OWNER' ||
-       github.event.pull_request.author_association == 'MEMBER' ||
-       github.event.pull_request.author_association == 'COLLABORATOR') &&
-      github.event.pull_request.head.repo.full_name == github.repository
+    # Only a branch pushed to this repo (so by someone with write access) is
+    # reviewed: GitHub withholds secrets from fork PRs, so it would 401 there anyway.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
