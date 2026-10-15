@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zrb-extras"
-version = "3.1.0"
+version = "4.0.0"
 description = "Collection of Zrb additional utilities"
 authors = ["Go Frendi Gunawan <gofrendiasgard@gmail.com>"]
 license = "AGPL-3.0-or-later"
@@ -12,21 +12,14 @@ keywords = []
 
 [tool.poetry.dependencies]
 python = ">=3.11.0,<3.15"
-zrb = ">=3.10.0"
-sounddevice = { version = "^0.5.2", optional = true }
-google-genai = { version = ">=2.18.0", optional = true }
-soundfile = { version = "^0.13.1", optional = true }
-numpy = { version = "^2.3.2", optional = true }
-openai = { version = "^3.0.0", optional = true }
+zrb = ">=3.21.0"
 pyttsx3 = { version = "^2.99", optional = true }
 youtube-transcript-api = { version = "^1.2.4", optional = true }
 
 [tool.poetry.extras]
-openai = ["openai", "sounddevice", "soundfile", "numpy"]
-google-genai = ["google-genai", "sounddevice", "soundfile", "numpy"]
 youtube = ["youtube-transcript-api"]
 pyttsx3 = ["pyttsx3"]
-all = ["openai", "google-genai", "pyttsx3", "sounddevice", "soundfile", "numpy", "youtube-transcript-api"]
+all = ["pyttsx3", "youtube-transcript-api"]
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "~7.0.0"

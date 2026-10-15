@@ -4,7 +4,39 @@ import importlib.util
 
 from zrb.llm.speech import AnySpeechBackend, Utterance
 
-from zrb_extras.llm.tool.pyttsx3.speak import speak_with_pyttsx3
+
+def speak_with_pyttsx3(
+    text: str,
+    voice_name: str | None = None,
+    rate: int | None = None,
+    volume: float | None = None,
+) -> None:
+    """Say *text* with pyttsx3, blocking until it is said."""
+    import pyttsx3
+
+    engine = pyttsx3.init()
+    if voice_name:
+        engine.setProperty("voice", voice_name)
+    if rate:
+        engine.setProperty("rate", rate)
+    if volume is not None:
+        engine.setProperty("volume", volume)
+    engine.say(text)
+    engine.runAndWait()
+
+
+def list_available_voices() -> list[dict[str, str | list[str]]]:
+    """The installed pyttsx3 voices, as ``id``, ``name`` and ``languages``."""
+    import pyttsx3
+
+    return [
+        {
+            "id": voice.id,
+            "name": voice.name,
+            "languages": list(voice.languages or []),
+        }
+        for voice in pyttsx3.init().getProperty("voices")
+    ]
 
 
 class Pyttsx3SpeechBackend(AnySpeechBackend):

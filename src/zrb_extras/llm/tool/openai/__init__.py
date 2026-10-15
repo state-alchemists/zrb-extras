@@ -1,3 +1,0 @@
-from zrb_extras.llm.tool.openai.speak import create_speak_tool
-
-__all__ = ["create_speak_tool"]

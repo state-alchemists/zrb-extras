@@ -1,7 +1,0 @@
-TTS_LANGUAGE = None
-TTS_VOICE_NAME = None  # variant
-TTS_ENGINE = None
-TTS_REGION = None
-TTS_RATE = None
-TTS_PITCH = None
-TTS_STREAM = None
