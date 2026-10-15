@@ -1,8 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from zrb.llm.speech import SpeechConfig
 
 from zrb_extras.llm.tool import create_speak_tool
+from zrb_extras.llm.tool.speak import MAX_SPEAKERS
 
 
 async def test_speak_uses_the_configured_voice_by_default():
@@ -32,6 +33,18 @@ async def test_speak_reuses_one_speaker_per_voice_and_instruction():
         await speak("three", voice_name="nova")
 
     assert speaker_class.call_count == 2
+
+
+async def test_speak_closes_the_least_recently_used_speaker_past_the_limit():
+    with patch("zrb_extras.llm.tool.speak.Speaker") as speaker_class:
+        speakers = [MagicMock() for _ in range(MAX_SPEAKERS + 1)]
+        speaker_class.side_effect = speakers
+        speak = create_speak_tool(SpeechConfig(backend="openai"))
+        for index in range(MAX_SPEAKERS + 1):
+            await speak("hi", instruction=f"style {index}")
+
+    speakers[0].close.assert_called_once()
+    assert not any(speaker.close.called for speaker in speakers[1:])
 
 
 def test_speak_tool_can_be_renamed():

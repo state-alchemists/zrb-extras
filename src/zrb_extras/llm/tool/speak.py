@@ -1,10 +1,12 @@
 import asyncio
 import threading
+from collections import OrderedDict
 from dataclasses import replace
-from functools import lru_cache
 from typing import Any, Callable, Coroutine
 
 from zrb.llm.speech import Speaker, SpeechConfig
+
+MAX_SPEAKERS = 8
 
 
 def create_speak_tool(
@@ -24,13 +26,21 @@ def create_speak_tool(
     # One utterance at a time: parallel tool calls would otherwise talk over each other.
     speaking = threading.Lock()
 
-    # ponytail: a Speaker per voice/instruction pair keeps its backend (and any
-    # Pipecat pipeline) warm; 8 pairs is plenty for one agent.
-    @lru_cache(maxsize=8)
+    # A Speaker per voice/instruction pair keeps its backend (and any Pipecat
+    # pipeline) warm; the least recently used is closed past MAX_SPEAKERS.
+    speakers: OrderedDict[tuple[str | None, str | None], Speaker] = OrderedDict()
+
     def get_speaker(voice: str | None, style: str | None) -> Speaker:
-        return Speaker(
+        key = (voice, style)
+        if key in speakers:
+            speakers.move_to_end(key)
+            return speakers[key]
+        speakers[key] = Speaker(
             replace(base, voice=voice or base.voice, style=style or base.style).resolve()
         )
+        if len(speakers) > MAX_SPEAKERS:
+            speakers.popitem(last=False)[1].close()
+        return speakers[key]
 
     def say(text: str, voice: str | None, style: str | None) -> None:
         with speaking:
