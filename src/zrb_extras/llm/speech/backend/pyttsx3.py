@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import importlib.util
 
-from zrb.llm.speech import AnySpeechBackend, Utterance
+try:  # zrb 4.0 keeps the speech unit under presentation/
+    from zrb.llm.presentation.speech import AnySpeechBackend, Utterance
+except ImportError:  # an older zrb keeps it at the top of zrb.llm
+    from zrb.llm.speech import AnySpeechBackend, Utterance
 
 
 def speak_with_pyttsx3(

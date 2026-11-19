@@ -8,7 +8,10 @@ The backend is zrb's speech backend: set ``ZRB_LLM_SPEECH_BACKEND`` (``auto``,
 """
 
 from zrb.builtin import llm_chat
-from zrb.llm.tool_call.tool_policy.auto_approve import auto_approve
+try:  # zrb 4.0 keeps the tool_call unit under capabilities/
+    from zrb.llm.capabilities.tool_call.tool_policy.auto_approve import auto_approve
+except ImportError:  # an older zrb keeps it at the top of zrb.llm
+    from zrb.llm.tool_call.tool_policy.auto_approve import auto_approve
 
 from zrb_extras.llm.tool import create_speak_tool, fetch_youtube_transcript
 

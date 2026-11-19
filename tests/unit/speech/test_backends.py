@@ -31,8 +31,12 @@ def test_pyttsx3_missing_raises_so_zrb_falls_back():
 
 
 def test_pyttsx3_plugs_into_zrb_speech():
-    from zrb.llm.speech import SpeechConfig
-    from zrb.llm.speech.backend import get_speech_backend
+    try:  # zrb 4.0 keeps the speech unit under presentation/
+        from zrb.llm.presentation.speech import SpeechConfig
+        from zrb.llm.presentation.speech.backend import get_speech_backend
+    except ImportError:  # an older zrb keeps it at the top of zrb.llm
+        from zrb.llm.speech import SpeechConfig
+        from zrb.llm.speech.backend import get_speech_backend
 
     backend = Pyttsx3SpeechBackend()
     assert get_speech_backend(backend, SpeechConfig().resolve()) is backend
