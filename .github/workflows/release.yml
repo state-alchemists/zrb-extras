@@ -64,19 +64,38 @@ jobs:
       # Poetry itself does not have to be installed here.
       - run: python -m build
 
-      # A release has to be safe to re-run: a version that is already on PyPI is not an error.
-      - name: Is this version already on PyPI?
-        id: published
+      # A release has to be safe to re-run, and "the version is on PyPI" is not the same
+      # question as "every file is": a publish can fail halfway and leave the version
+      # there with only one of its two files. So compare file names, and let the action
+      # below skip the ones already uploaded.
+      - name: Which of these files is PyPI still missing?
+        id: missing
         run: |
-          if curl -fsS "https://pypi.org/pypi/zrb-extras/$GITHUB_REF_NAME/json" > /dev/null; then
-            echo "yes=true" >> "$GITHUB_OUTPUT"
-            echo "$GITHUB_REF_NAME is already on PyPI; attaching the build to the release instead"
-          else
-            echo "yes=false" >> "$GITHUB_OUTPUT"
-          fi
+          curl -fs "https://pypi.org/pypi/zrb-extras/$GITHUB_REF_NAME/json" -o /tmp/published.json \
+            || { echo "no file list for $GITHUB_REF_NAME from PyPI; treating every file as unpublished"; echo '{}' > /tmp/published.json; }
+          python3 - <<'PY'
+          import glob, json, os, pathlib
 
-      - if: steps.published.outputs.yes == 'false'
+          published = {
+              entry["filename"]
+              for entry in json.loads(pathlib.Path("/tmp/published.json").read_text()).get("urls", [])
+          }
+          built = sorted(os.path.basename(path) for path in glob.glob("dist/*"))
+          missing = [name for name in built if name not in published]
+          version = os.environ["GITHUB_REF_NAME"]
+          if missing:
+              print(f"{version}: PyPI is missing {', '.join(missing)}")
+          else:
+              print(f"{version} is on PyPI with every file; attaching the build to the release instead")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"any={'yes' if missing else 'no'}\n")
+          PY
+
+      - if: steps.missing.outputs.any == 'yes'
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          # The re-run case: upload the file PyPI lacks, leave the one it has.
+          skip-existing: true
 
       - run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber
         env:
