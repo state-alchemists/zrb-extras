@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from zrb.llm.speech import SpeechConfig
+try:  # zrb 4.0 keeps the speech unit under presentation/
+    from zrb.llm.presentation.speech import SpeechConfig
+except ImportError:  # an older zrb keeps it at the top of zrb.llm
+    from zrb.llm.speech import SpeechConfig
 
 from zrb_extras.llm.tool import create_speak_tool
 from zrb_extras.llm.tool.speak import MAX_SPEAKERS

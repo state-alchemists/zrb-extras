@@ -4,7 +4,10 @@ from collections import OrderedDict
 from dataclasses import replace
 from typing import Any, Callable, Coroutine
 
-from zrb.llm.speech import Speaker, SpeechConfig
+try:  # zrb 4.0 keeps the speech unit under presentation/
+    from zrb.llm.presentation.speech import Speaker, SpeechConfig
+except ImportError:  # an older zrb keeps it at the top of zrb.llm
+    from zrb.llm.speech import Speaker, SpeechConfig
 
 MAX_SPEAKERS = 8
 
