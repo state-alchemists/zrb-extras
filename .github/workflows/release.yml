@@ -1,0 +1,74 @@
+# Push a tag like 4.1.0: runs the suite, opens a GitHub release, and publishes the
+# Python package to PyPI.
+#
+# PyPI publishing uses trusted publishing: add this repository, the workflow
+# `release.yml` and the environment `pypi` as a trusted publisher of the zrb-extras
+# project on pypi.org. Without it, publish the version by hand before tagging -- the
+# publish step skips a version that is already there.
+name: release
+on:
+  push:
+    tags: ["[0-9]*"]
+
+jobs:
+  test:
+    # A version on PyPI keeps its number forever, so the suite gates the tag.
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
+  release:
+    needs: test
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # A tag that disagrees with the package would publish one version under another's name.
+      - name: The tag must be the version in pyproject.toml
+        run: |
+          version=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          if [ "$GITHUB_REF_NAME" != "$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match pyproject.toml's $version"
+            exit 1
+          fi
+
+      - run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  python:
+    needs: release
+    runs-on: ubuntu-26.04
+    environment: pypi
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      # poetry-core is the build backend, so `build` reads pyproject.toml directly and
+      # Poetry itself does not have to be installed here.
+      - run: python -m build
+
+      # A release has to be safe to re-run: a version that is already on PyPI is not an error.
+      - name: Is this version already on PyPI?
+        id: published
+        run: |
+          if curl -fsS "https://pypi.org/pypi/zrb-extras/$GITHUB_REF_NAME/json" > /dev/null; then
+            echo "yes=true" >> "$GITHUB_OUTPUT"
+            echo "$GITHUB_REF_NAME is already on PyPI; attaching the build to the release instead"
+          else
+            echo "yes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.published.outputs.yes == 'false'
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+      - run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
