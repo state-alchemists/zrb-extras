@@ -1,0 +1,102 @@
+# Push a tag like 4.1.0: runs the suite, opens a GitHub release, and publishes the
+# Python package to PyPI.
+#
+# PyPI publishing uses trusted publishing: add this repository, the workflow
+# `release.yml` and the environment `pypi` as a trusted publisher of the zrb-extras
+# project on pypi.org. Without it, publish the version by hand before tagging -- the
+# publish step skips a version that is already there.
+name: release
+on:
+  push:
+    tags: ["[0-9]*"]
+
+jobs:
+  test:
+    # A version on PyPI keeps its number forever, so the suite gates the tag.
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
+  release:
+    needs: test
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # A tag that disagrees with the package would publish one version under another's name.
+      - name: The tag must be the version in pyproject.toml
+        run: |
+          version=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          if [ "$GITHUB_REF_NAME" != "$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match pyproject.toml's $version"
+            exit 1
+          fi
+
+      # A release has to be safe to re-run: the publish below may fail after this step has
+      # already run, and `gh release create` refuses a name that is taken -- which would
+      # fail this job and skip the publish that the re-run was for.
+      - name: Open the release unless it is already there
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            echo "$GITHUB_REF_NAME already has a release; leaving it as it is"
+          else
+            gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  python:
+    needs: release
+    runs-on: ubuntu-26.04
+    environment: pypi
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      # poetry-core is the build backend, so `build` reads pyproject.toml directly and
+      # Poetry itself does not have to be installed here.
+      - run: python -m build
+
+      # A release has to be safe to re-run, and "the version is on PyPI" is not the same
+      # question as "every file is": a publish can fail halfway and leave the version
+      # there with only one of its two files. So compare file names, and let the action
+      # below skip the ones already uploaded.
+      - name: Which of these files is PyPI still missing?
+        id: missing
+        run: |
+          curl -fs "https://pypi.org/pypi/zrb-extras/$GITHUB_REF_NAME/json" -o /tmp/published.json \
+            || { echo "no file list for $GITHUB_REF_NAME from PyPI; treating every file as unpublished"; echo '{}' > /tmp/published.json; }
+          python3 - <<'PY'
+          import glob, json, os, pathlib
+
+          published = {
+              entry["filename"]
+              for entry in json.loads(pathlib.Path("/tmp/published.json").read_text()).get("urls", [])
+          }
+          built = sorted(os.path.basename(path) for path in glob.glob("dist/*"))
+          missing = [name for name in built if name not in published]
+          version = os.environ["GITHUB_REF_NAME"]
+          if missing:
+              print(f"{version}: PyPI is missing {', '.join(missing)}")
+          else:
+              print(f"{version} is on PyPI with every file; attaching the build to the release instead")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"any={'yes' if missing else 'no'}\n")
+          PY
+
+      - if: steps.missing.outputs.any == 'yes'
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          # The re-run case: upload the file PyPI lacks, leave the one it has.
+          skip-existing: true
+
+      - run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
