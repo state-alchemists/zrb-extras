@@ -34,7 +34,16 @@ jobs:
             exit 1
           fi
 
-      - run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
+      # A release has to be safe to re-run: the publish below may fail after this step has
+      # already run, and `gh release create` refuses a name that is taken -- which would
+      # fail this job and skip the publish that the re-run was for.
+      - name: Open the release unless it is already there
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            echo "$GITHUB_REF_NAME already has a release; leaving it as it is"
+          else
+            gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
 
