@@ -35,14 +35,17 @@ jobs:
           fi
 
       # A release has to be safe to re-run: the publish below may fail after this step has
-      # already run, and `gh release create` refuses a name that is taken -- which would
-      # fail this job and skip the publish that the re-run was for.
+      # already run, so an existing release is left alone -- but a *draft* one is published,
+      # because a draft nobody opens is a release the tag never made.
       - name: Open the release unless it is already there
         run: |
-          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            echo "$GITHUB_REF_NAME already has a release; leaving it as it is"
-          else
+          if ! gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft > /tmp/draft 2>/dev/null; then
             gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
+          elif [ "$(cat /tmp/draft)" = "true" ]; then
+            echo "$GITHUB_REF_NAME is a draft; publishing it"
+            gh release edit "$GITHUB_REF_NAME" --draft=false
+          else
+            echo "$GITHUB_REF_NAME already has a release; leaving it as it is"
           fi
         env:
           GH_TOKEN: ${{ github.token }}
